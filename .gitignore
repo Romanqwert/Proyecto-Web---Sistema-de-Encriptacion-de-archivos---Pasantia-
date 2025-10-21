@@ -1,0 +1,21 @@
+# Archivos binarios y de compilación
+vs/
+bin/
+obj/
+*.exe
+*.dll
+*.pdb
+
+# Configuración de usuario de VS
+.vs/
+*.user
+*.suo
+
+# Publicaciones
+publish/
+*.log
+
+# Archivos temporales
+*.tmp
+*.bak
+*.swp
