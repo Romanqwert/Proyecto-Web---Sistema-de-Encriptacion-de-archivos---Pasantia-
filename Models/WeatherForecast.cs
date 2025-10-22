@@ -1,4 +1,4 @@
-namespace EncriptacionApi
+namespace EncriptacionApi.Models
 {
     public class WeatherForecast
     {

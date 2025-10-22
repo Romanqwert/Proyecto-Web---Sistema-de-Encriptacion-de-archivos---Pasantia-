@@ -19,3 +19,6 @@ publish/
 *.tmp
 *.bak
 *.swp
+
+.env
+appsettings*.json

@@ -1,4 +1,8 @@
 
+using EncriptacionApi.Data;
+using Microsoft.EntityFrameworkCore;
+using DotNetEnv;
+
 namespace EncriptacionApi
 {
     public class Program
@@ -13,6 +17,16 @@ namespace EncriptacionApi
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+            // Conexion a la base de datos
+            Env.Load();
+
+            builder.Services.AddDbContext<AppDbContext>(options => 
+                options.UseMySql(
+                    Environment.GetEnvironmentVariable("DB_CONNECTION"),
+                    new MySqlServerVersion(new Version(8, 0, 36))
+                )
+            );
 
             var app = builder.Build();
 
