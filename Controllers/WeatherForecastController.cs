@@ -1,3 +1,4 @@
+using EncriptacionApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EncriptacionApi.Controllers
