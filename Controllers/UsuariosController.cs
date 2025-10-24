@@ -25,20 +25,37 @@ namespace EncriptacionApi.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] Usuario user)
         {
-            if (await _context.Usuarios.AnyAsync(u => u.NombreUsuario == user.NombreUsuario))
+            if (user == null)
+                return BadRequest("El usuario no puede ser nulo.");
+
+            if (string.IsNullOrEmpty(user.CorreoElectronico))
+                return BadRequest("El correo electrónico es obligatorio.");
+
+            if (string.IsNullOrEmpty(user.NombreUsuario))
+                return BadRequest("El nombre de usuario es obligatorio.");
+
+            if (await _context.Usuario.AnyAsync(u => u.NombreUsuario == user.NombreUsuario))
                 return BadRequest("El nombre de usuario ya existe.");
 
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
-            _context.Usuarios.Add(user);
+            _context.Usuario.Add(user);
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Usuario registrado exitosamente."});
+            var token = GenerarToken(user);
+
+            return Ok(new { message = "Usuario registrado exitosamente.", token });
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] Usuario credenciales)
         {
-            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.CorreoElectronico == credenciales.CorreoElectronico);
+            if (credenciales == null)
+                return BadRequest("El usuario no puede ser nulo.");
+
+            if (string.IsNullOrEmpty(credenciales.CorreoElectronico))
+                return BadRequest("El correo electrónico es obligatorio.");
+
+            var usuario = await _context.Usuario.FirstOrDefaultAsync(u => u.CorreoElectronico == credenciales.CorreoElectronico);
             if (usuario == null || !BCrypt.Net.BCrypt.Verify(credenciales.PasswordHash, usuario.PasswordHash))
                 return Unauthorized("Credenciales inválidas.");
 
@@ -51,7 +68,7 @@ namespace EncriptacionApi.Controllers
         public async Task<IActionResult> Perfil()
         {
             var correo = User.FindFirst(ClaimTypes.Email)?.Value;
-            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.CorreoElectronico == correo);
+            var usuario = await _context.Usuario.FirstOrDefaultAsync(u => u.CorreoElectronico == correo);
             if (usuario == null) return NotFound();
 
             return Ok(new { usuario.IdUsuario, usuario.NombreUsuario, usuario.CorreoElectronico, usuario.FechaRegistro });
