@@ -1,9 +1,16 @@
 import { Link } from "react-router-dom";
 
-const SideBar = ({ showSideBar }) => {
+interface SidebarProps {
+  showSideBar?: () => void;
+}
+
+const SideBar: React.FC<SidebarProps> = ({ showSideBar }) => {
   return (
     <>
-      <aside className="bg-[#264E72] text-white w-[300px] h-full fixed top-25% left-0" data-aos="fade-right">
+      <aside
+        className="bg-[#264E72] text-white w-[300px] h-full fixed top-25% left-0"
+        data-aos="fade-right"
+      >
         <div className="grid place-items-start gap-5 p-3">
           <Link className="w-full p-2" to={"/encriptar"}>
             <button className="flex justify-between items-center text-start font-medium gap-2 cursor-pointer">
@@ -22,7 +29,7 @@ const SideBar = ({ showSideBar }) => {
           </Link>
           <Link className="w-full p-2" to={"/"}>
             <button className="flex justify-between items-center text-start font-medium gap-2 cursor-pointer">
-              <i class="fa-solid fa-book" style={{ fontSize: "20px" }}></i>
+              <i className="fa-solid fa-book" style={{ fontSize: "20px" }}></i>
               Historial
             </button>
           </Link>

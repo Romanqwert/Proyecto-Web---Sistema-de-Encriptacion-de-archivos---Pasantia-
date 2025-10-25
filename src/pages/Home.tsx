@@ -4,8 +4,20 @@ import Sidebar from "../components/Sidebar";
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 
+type Token = {
+  Name: string;
+  id: number;
+} | null;
+
+type File = {
+  fileName?: string;
+  fileSize?: number;
+  dateUploaded?: string;
+} | null;
+
 const HomePage = () => {
-  const token = JSON.parse(sessionStorage.getItem("user_token")) ?? null;
+  const storedToken = sessionStorage.getItem("user_token");
+  const token: Token | null = storedToken ? JSON.parse(storedToken) : null;
   console.log(token);
   if (!token) {
     return <Navigate to="/login" replace />;
@@ -17,8 +29,9 @@ const HomePage = () => {
     setShowSideBar(!showSideBar);
   };
 
-  const date = new Date();
-  const data = [
+  // testing
+  const date: Date = new Date();
+  const data: Array<Object> = [
     {
       fileName: "config.json",
       fileType: ".json",
@@ -80,7 +93,7 @@ const HomePage = () => {
             <div className="grid place-content-center w-full gap-3 sm:max-w-7xl px-4">
               {data.length > 0 ? (
                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {data.map((file, index) => {
+                  {data.map((file: File | null, index) => {
                     return (
                       <li key={index}>
                         <div className="flex flex-row items-center px-3 py-2 gap-4 w-full bg-gray-200 shadow-sm rounded-sm">
@@ -92,15 +105,15 @@ const HomePage = () => {
                           </div>
                           <div className="space-y-1.5">
                             <h2 className="text-xl font-bold">
-                              {file.fileName}
+                              {file?.fileName}
                             </h2>
                             <hr />
                             <p className="text-sm sm:text-base">
                               Tamaño del archivo:{" "}
-                              <strong> {file.fileSize}kb</strong>
+                              <strong> {file?.fileSize}kb</strong>
                             </p>
                             <p className="text-sm sm:text-base">
-                              Subido en el <strong> {file.dateUploaded}</strong>
+                              Subido en el <strong> {file?.dateUploaded}</strong>
                             </p>
                           </div>
                         </div>
@@ -111,7 +124,7 @@ const HomePage = () => {
               ) : (
                 <div className="h-dvh flex justify-center items-center flex-col gap-5">
                   <i
-                    class="fa-solid fa-face-frown-open"
+                    className="fa-solid fa-face-frown-open"
                     style={{ fontSize: "40px", color: "gray" }}
                   ></i>
                   <p className="text-center text-gray-500 font-medium">

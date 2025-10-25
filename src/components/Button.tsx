@@ -1,14 +1,21 @@
 import { Children } from "react";
 
-//  primary, danger, success
-const Button = ({ type, btnType, styles, onClick, children }) => {
+interface ButtonProps {
+  type?: "primary" | "success" | "danger";
+  btnType: "submit" | "button";
+  styles?: object;
+  onclick?: () => void;
+  children: React.ReactNode;
+}
+
+const Button: React.FC<ButtonProps> = ({ type, btnType, styles, onclick, children }) => {
   switch (String(type).toLocaleLowerCase()) {
     case "primary":
       return (
         <>
           <button
             type={btnType}
-            onClick={() => onClick}
+            onClick={() => onclick}
             style={styles}
             className="w-full h-auto bg-[#264E72] text-white text-medium text-center rounded-sm shadow-sm p-2 cursor-pointer hover:-translate-y-1 hover:shadow-sm transition-all"
           >
@@ -20,7 +27,7 @@ const Button = ({ type, btnType, styles, onClick, children }) => {
       return (
         <>
           <button
-            onClick={() => onClick}
+            onClick={() => onclick}
             style={styles}
             className="w-full h-auto bg-[#264E72] text-white text-medium text-center rounded-sm shadow-sm p-2 cursor-pointer hover:-translate-y-1 hover:shadow-sm transition-all"
           >
@@ -33,7 +40,7 @@ const Button = ({ type, btnType, styles, onClick, children }) => {
         <>
           <button
             type={btnType}
-            onClick={() => onClick}
+            onClick={() => onclick}
             style={styles}
             className="w-full h-auto bg-[#264E72] text-white text-medium text-center rounded-sm shadow-sm p-2 cursor-pointer hover:-translate-y-1 hover:shadow-sm transition-all"
           >

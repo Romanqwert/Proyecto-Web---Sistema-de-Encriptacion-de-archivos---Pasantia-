@@ -6,14 +6,20 @@ import { Link, redirect } from "react-router-dom";
 import { toast, Toaster } from "react-hot-toast";
 import { login } from "../api/auth";
 
+interface Response {
+  statusCode?: number;
+  message?: string;
+  token?: string;
+};
+
 function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
 
   useEffect(() => {
     document.body.classList.add("body");
   });
 
-  const handleLogin = async (data) => {
+  const handleLogin = async (data: FormData) => {
     const username = data.get("username") ?? null;
     const password = data.get("password") ?? null;
 
@@ -22,19 +28,18 @@ function LoginPage() {
       return;
     }
 
-    const response = await login({
-      userName: username,
-      password: password,
+    const response: Response = await login({
+      username: username.toString(),
+      password: password.toString(),
     });
 
-    if (!response?.ok) {
-      const errMessage = response?.message;
-      toast.error(errMessage ? errMessage : response);
+    if (!response?.statusCode) {
+      toast.error(response.message ?? "Error invalido");
       return;
     }
 
     const token = response.token;
-    sessionStorage.setItem("user_token", token);
+    sessionStorage.setItem("user_token", token!);
     throw redirect("/");
   };
 
@@ -72,7 +77,7 @@ function LoginPage() {
                             onClick={() => setShowPassword(!showPassword)}
                           >
                             <i
-                              class={
+                              className={
                                 !showPassword
                                   ? "fa-solid fa-eye-slash"
                                   : "fa-solid fa-eye"

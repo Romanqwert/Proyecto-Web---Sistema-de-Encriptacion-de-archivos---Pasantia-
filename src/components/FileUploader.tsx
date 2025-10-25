@@ -1,12 +1,16 @@
-import { useState, useRef } from "react";
+import { useState, useRef, RefObject } from "react";
 import toast, { Toaster } from "react-hot-toast";
 
-const FileUploader = ({ setUploadedFiles }) => {
-  const fileInputRef = useRef(null);
-  const [files, setFiles] = useState([]);
-  const [isDragging, setIsDragging] = useState(false);
+interface FileUploaderProps {
+  setUploadedFiles?: React.Dispatch<React.SetStateAction<File[]>>;
+}
 
-  const handleDrop = (e) => {
+const FileUploader: React.FC<FileUploaderProps> = ({ setUploadedFiles }) => {
+  const fileInputRef: RefObject<HTMLInputElement | null> = useRef(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
 
     const targetFiles = Array.from(e.dataTransfer.files);
@@ -16,7 +20,9 @@ const FileUploader = ({ setUploadedFiles }) => {
         toast.error("El archivo no puede ser de mas de 10 MB");
     });
 
-    const uploadedFiles = targetFiles.filter((f) => f.size < 10 * 1024 * 1024);
+    const uploadedFiles: File[] = targetFiles.filter(
+      (f) => f.size < 10 * 1024 * 1024
+    );
     if (!uploadedFiles) {
       toast.error(
         "No se han procesado los archivos exitosamente, intente nuevamente"
@@ -25,26 +31,28 @@ const FileUploader = ({ setUploadedFiles }) => {
     }
 
     setFiles(uploadedFiles);
-    setUploadedFiles(uploadedFiles);
+    setUploadedFiles?.(uploadedFiles);
   };
 
-  const handleDragOver = (e) => {
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
   };
 
   const handleDragEnter = () => setIsDragging(true);
   const handleDragLeave = () => setIsDragging(false);
 
-  const fileClick = () => fileInputRef.current.click();
-  const handleFiles = (e) => {
-    const targetFiles = Array.from(e.target.files);
+  const fileClick = () => fileInputRef.current?.click();
+  const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const targetFiles = Array.from(e.target.files ? e.target.files : []);
     targetFiles.forEach((file) => {
       console.log(file);
       if (file.size > 10 * 1024 * 1024)
         toast.error("El archivo no puede ser de mas de 10 MB");
     });
 
-    const uploadedFiles = targetFiles.filter((f) => f.size < 10 * 1024 * 1024);
+    const uploadedFiles: File[] = targetFiles.filter(
+      (f) => f.size < 10 * 1024 * 1024
+    );
     if (!uploadedFiles) {
       toast.error(
         "No se han procesado los archivos exitosamente, intente nuevamente"
@@ -55,7 +63,7 @@ const FileUploader = ({ setUploadedFiles }) => {
     console.log(targetFiles, uploadedFiles);
 
     setFiles(uploadedFiles);
-    setUploadedFiles(uploadedFiles);
+    setUploadedFiles?.(uploadedFiles);
   };
 
   return (

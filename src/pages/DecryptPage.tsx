@@ -1,33 +1,39 @@
 import Nav from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import FileUploader from "../components/FileUploader";
 import toast from "react-hot-toast";
 import Button from "../components/Button";
 import { Navigate } from "react-router-dom";
 
+type Token = {
+  Name: string;
+  id: number;
+} | null;
+
 const DecryptPage = () => {
-  const token = JSON.parse(sessionStorage.getItem("user_token")) ?? null;
+  const storedToken = sessionStorage.getItem("user_token");
+  const token: Token | null = storedToken ? JSON.parse(storedToken) : null;
   console.log(token);
   if (!token) {
     return <Navigate to="/login" replace />;
   }
   toast.success(`Bienvenido ${token?.Name}!`);
 
-  const [showSideBar, setShowSideBar] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [showSideBar, setShowSideBar] = useState<boolean>(false);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
   const handleShowSideBar = () => {
     setShowSideBar(!showSideBar);
   };
 
-  const formatSize = (size) => {
+  const formatSize = (size: number) => {
     if (size < 1024) return `${size} bytes`;
     else if (size < 1024 * 1024) return `${Number(size).toFixed(2)} kb`;
     else if (size < 1024 * 1024 * 1024) return `${Number(size).toFixed(2)} mb`;
   };
 
-  const checkFileSize = (size) => {
+  const checkFileSize = (size: number) => {
     if (size < 10485760) {
       toast.error("El archivo no puede ser mayor de 10 MB");
       return;
@@ -58,7 +64,9 @@ const DecryptPage = () => {
                 </div>
                 {uploadedFiles.length > 0 && (
                   <div>
-                    <Button btnType={"primary"}>desencriptar</Button>
+                    <Button btnType={"submit"} type={"primary"}>
+                      desencriptar
+                    </Button>
                   </div>
                 )}
                 {uploadedFiles.length > 0 && (
@@ -87,7 +95,7 @@ const DecryptPage = () => {
                                 <p className="text-sm sm:text-base">
                                   Ultima vez modificado:
                                   <strong>
-                                    {file.lastModifiedDate.toString()}
+                                    {file?.lastModified?.toString()}
                                   </strong>
                                 </p>
                                 <p className="text-sm sm:text-base">

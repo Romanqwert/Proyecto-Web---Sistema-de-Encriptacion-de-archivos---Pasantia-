@@ -1,6 +1,11 @@
 import Logo from "./Logo.jsx";
 
-const Nav = ({ showSidebar, username }) => {
+interface NavProps {
+  showSidebar?: () => void;
+  username?: string;
+}
+
+const Nav: React.FC<NavProps> = ({ showSidebar, username }) => {
   return (
     <>
       <header className="bg-[#264E72] w-full sticky top-0 shadow">
@@ -18,7 +23,7 @@ const Nav = ({ showSidebar, username }) => {
                 ></i>
               </button>
             </div>
-            <Logo />
+            <Logo num={-1} />
             <div className="flex flex-row gap-2">
               <i
                 className="fa-solid fa-user"
@@ -40,7 +45,7 @@ const Nav = ({ showSidebar, username }) => {
                 ></i>
               </button>
             </div>
-            <Logo />
+            <Logo num={-1} />
           </nav>
         </div>
       </header>

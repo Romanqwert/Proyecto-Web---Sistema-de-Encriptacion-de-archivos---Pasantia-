@@ -4,23 +4,30 @@ import { useState } from "react";
 import FileUploader from "../components/FileUploader";
 import Button from "../components/Button";
 import { Navigate } from "react-router-dom";
+import { Toaster, toast } from "react-hot-toast";
+
+type Token = {
+  Name: string;
+  id: number;
+} | null;
 
 const EncryptPage = () => {
-  const token = JSON.parse(sessionStorage.getItem("user_token")) ?? null;
+  const storedToken = sessionStorage.getItem("user_token");
+  const token = storedToken ? JSON.parse(storedToken) : null;
   console.log(token);
   if (!token) {
     return <Navigate to="/login" replace />;
   }
   toast.success(`Bienvenido ${token?.Name}!`);
 
-  const [showSideBar, setShowSideBar] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [showSideBar, setShowSideBar] = useState<boolean>(false);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
   const handleShowSideBar = () => {
     setShowSideBar(!showSideBar);
   };
 
-  const formatSize = (size) => {
+  const formatSize = (size: number) => {
     if (size < 1024) return `${size} bytes`;
     else if (size < 1024 * 1024) return `${Number(size).toFixed(2)} kb`;
     else if (size < 1024 * 1024 * 1024) return `${Number(size).toFixed(2)} mb`;
@@ -49,7 +56,7 @@ const EncryptPage = () => {
                 </div>
                 {uploadedFiles.length > 0 && (
                   <div>
-                    <Button btnType={"primary"}>encriptar</Button>
+                    <Button btnType={"submit"} type={"primary"}>encriptar</Button>
                   </div>
                 )}
                 {uploadedFiles.length > 0 && (
@@ -78,7 +85,7 @@ const EncryptPage = () => {
                                 <p className="text-sm sm:text-base">
                                   Ultima vez modificado:
                                   <strong>
-                                    {file.lastModifiedDate.toString()}
+                                    {file?.lastModified?.toString()}
                                   </strong>
                                 </p>
                                 <p className="text-sm sm:text-base">

@@ -6,6 +6,12 @@ import { Link, redirect } from "react-router-dom";
 import { toast, Toaster } from "react-hot-toast";
 import { register } from "../api/auth";
 
+interface Response {
+  statusCode?: number;
+  message?: string;
+  token?: string;
+}
+
 function RegisterPage() {
   useEffect(() => {
     document.body.classList.add("body");
@@ -13,7 +19,7 @@ function RegisterPage() {
 
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleRegister = async (data) => {
+  const handleRegister = async (data: FormData) => {
     const user = data.get("username") ?? null;
     const email = data.get("email") ?? null;
     const password = data.get("password") ?? null;
@@ -24,20 +30,19 @@ function RegisterPage() {
       return;
     }
 
-    const response = await register({
-      NombreUsuario: user,
-      CorreoElectronico: email,
-      PasswordHash: password,
+    const response: Response = await register({
+      username: user.toString(),
+      password: password.toString(),
+      email: email.toString(),
     });
 
-    if (!response?.ok) {
-      const errMessage = response?.message;
-      toast.error(errMessage ? errMessage : response);
+    if (response?.statusCode != 200) {
+      toast.error(response.message ?? "Error invalido");
       return;
     }
 
-    const token = response.token;
-    sessionStorage.setItem("user_token", token);
+    const token = response?.token;
+    sessionStorage.setItem("user_token", token!);
     throw redirect("/");
   };
 
@@ -109,7 +114,7 @@ function RegisterPage() {
                   <div className="w-full grid place-items-end gap-2">
                     <i
                       onClick={() => setShowPassword(!showPassword)}
-                      class={
+                      className={
                         !showPassword
                           ? "fa-solid fa-eye-slash"
                           : "fa-solid fa-eye"
@@ -147,7 +152,9 @@ function RegisterPage() {
                   </div>
                 </div>
                 <div className="flex sm:flex-row sm:flex-nowrap flex-wrap justify-center items-center gap-4 w-full">
-                  <Button type={"primary"} btnType={"submit"}>Acceder</Button>
+                  <Button type={"primary"} btnType={"submit"}>
+                    Acceder
+                  </Button>
                   <div className="flex flex-row items-center justify-center gap-2 w-full">
                     <p className="text-[#555555] text-sm">
                       Ya tienes un usuario?
