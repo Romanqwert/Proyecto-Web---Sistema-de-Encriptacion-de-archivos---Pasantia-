@@ -3,15 +3,15 @@ import Sidebar from "../components/Sidebar";
 import { useState } from "react";
 import FileUploader from "../components/FileUploader";
 import Button from "../components/Button";
+import { Navigate } from "react-router-dom";
 
 const EncryptPage = () => {
-  onload((e) => {
-    if (!token) {
-      throw redirect(
-        `/login?errorMessage=${"usuario invalido, por favor authenticate."}`
-      );
-    }
-  });
+  const token = JSON.parse(sessionStorage.getItem("user_token")) ?? null;
+  console.log(token);
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  toast.success(`Bienvenido ${token?.Name}!`);
 
   const [showSideBar, setShowSideBar] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);

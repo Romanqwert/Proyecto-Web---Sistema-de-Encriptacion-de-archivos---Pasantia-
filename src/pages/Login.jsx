@@ -27,8 +27,9 @@ function LoginPage() {
       password: password,
     });
 
-    if (!response.ok) {
-      toast.error(response?.message);
+    if (!response?.ok) {
+      const errMessage = response?.message;
+      toast.error(errMessage ? errMessage : response);
       return;
     }
 

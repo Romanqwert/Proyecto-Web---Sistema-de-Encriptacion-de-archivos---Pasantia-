@@ -4,6 +4,7 @@ import RegisterPage from "./pages/Register";
 import HomePage from "./pages/Home";
 import EncryptPage from "./pages/EncryptPage";
 import DecryptPage from "./pages/DecryptPage";
+import NotFoundPage from "./pages/NotFoundPage";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/encriptar" element={<EncryptPage />} />
           <Route path="/desencriptar" element={<DecryptPage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
     </>

@@ -2,18 +2,15 @@ import Nav from "../components/Navbar";
 import { Toaster, toast } from "react-hot-toast";
 import Sidebar from "../components/Sidebar";
 import { useState } from "react";
-import { redirect } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 
 const HomePage = () => {
-  const token = sessionStorage.getItem("user_token") ?? null;
-  onload((e) => {
-    if (!token) {
-      throw redirect(
-        `/login?errorMessage=${"usuario invalido, por favor authenticate."}`
-      );
-    }
-    toast.success(`Bienvenido ${token.Name}!`);
-  });
+  const token = JSON.parse(sessionStorage.getItem("user_token")) ?? null;
+  console.log(token);
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  toast.success(`Bienvenido ${token?.Name}!`);
 
   const [showSideBar, setShowSideBar] = useState(false);
   const handleShowSideBar = () => {

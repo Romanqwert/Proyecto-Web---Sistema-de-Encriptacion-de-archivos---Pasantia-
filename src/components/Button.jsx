@@ -10,7 +10,6 @@ const Button = ({ type, btnType, styles, onClick, children }) => {
             type={btnType}
             onClick={() => onClick}
             style={styles}
-            data-aos="fade-in"
             className="w-full h-auto bg-[#264E72] text-white text-medium text-center rounded-sm shadow-sm p-2 cursor-pointer hover:-translate-y-1 hover:shadow-sm transition-all"
           >
             {Children.map(children, (child) => child)}
@@ -23,7 +22,6 @@ const Button = ({ type, btnType, styles, onClick, children }) => {
           <button
             onClick={() => onClick}
             style={styles}
-            data-aos="fade-in"
             className="w-full h-auto bg-[#264E72] text-white text-medium text-center rounded-sm shadow-sm p-2 cursor-pointer hover:-translate-y-1 hover:shadow-sm transition-all"
           >
             {Children.map(children, (child) => child)}
@@ -37,7 +35,6 @@ const Button = ({ type, btnType, styles, onClick, children }) => {
             type={btnType}
             onClick={() => onClick}
             style={styles}
-            data-aos="fade-in"
             className="w-full h-auto bg-[#264E72] text-white text-medium text-center rounded-sm shadow-sm p-2 cursor-pointer hover:-translate-y-1 hover:shadow-sm transition-all"
           >
             {Children.map(children, (child) => child)}

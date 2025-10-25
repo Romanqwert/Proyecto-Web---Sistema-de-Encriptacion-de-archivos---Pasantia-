@@ -1,7 +1,7 @@
 import Logo from "../components/Logo";
 import Button from "../components/Button";
 import "./styles.css";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, redirect } from "react-router-dom";
 import { toast, Toaster } from "react-hot-toast";
 import { register } from "../api/auth";
@@ -10,6 +10,8 @@ function RegisterPage() {
   useEffect(() => {
     document.body.classList.add("body");
   });
+
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleRegister = async (data) => {
     const user = data.get("username") ?? null;
@@ -28,12 +30,12 @@ function RegisterPage() {
       PasswordHash: password,
     });
 
-    if (!response.ok) {
-      toast.error(response?.message);
+    if (!response?.ok) {
+      const errMessage = response?.message;
+      toast.error(errMessage ? errMessage : response);
       return;
     }
 
-    toast.success("Usuario registrado exitosamente");
     const token = response.token;
     sessionStorage.setItem("user_token", token);
     throw redirect("/");
@@ -104,11 +106,24 @@ function RegisterPage() {
                       Contraseña:
                     </label>
                   </div>
-                  <div className="w-full">
+                  <div className="w-full grid place-items-end gap-2">
+                    <i
+                      onClick={() => setShowPassword(!showPassword)}
+                      class={
+                        !showPassword
+                          ? "fa-solid fa-eye-slash"
+                          : "fa-solid fa-eye"
+                      }
+                      style={{
+                        color: "gray",
+                        fontSize: "20px",
+                        cursor: "pointer",
+                      }}
+                    ></i>
                     <input
                       id="password"
                       name="password"
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       className="bg-[#EDEDEDEB] rounded-sm p-2 w-full outline-0 max-w-md focus:outline-2 focus:outline-blue-500 transition-all"
                     />
                   </div>
@@ -126,13 +141,13 @@ function RegisterPage() {
                     <input
                       id="password_confirmation"
                       name="passwordConfirm"
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       className="bg-[#EDEDEDEB] rounded-sm p-2 w-full outline-0 max-w-md focus:outline-2 focus:outline-blue-500 transition-all"
                     />
                   </div>
                 </div>
                 <div className="flex sm:flex-row sm:flex-nowrap flex-wrap justify-center items-center gap-4 w-full">
-                  <Button type={"primary"}>Acceder</Button>
+                  <Button type={"primary"} btnType={"submit"}>Acceder</Button>
                   <div className="flex flex-row items-center justify-center gap-2 w-full">
                     <p className="text-[#555555] text-sm">
                       Ya tienes un usuario?
