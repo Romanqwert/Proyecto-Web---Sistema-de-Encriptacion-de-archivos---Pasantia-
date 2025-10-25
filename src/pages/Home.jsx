@@ -1,10 +1,20 @@
 import Nav from "../components/Navbar";
-// import { Toaster, toast } from "react-hot-toast";
+import { Toaster, toast } from "react-hot-toast";
 import Sidebar from "../components/Sidebar";
 import { useState } from "react";
-import FileUploader from "../components/FileUploader";
+import { redirect } from "react-router-dom";
 
 const HomePage = () => {
+  const token = sessionStorage.getItem("user_token") ?? null;
+  onload((e) => {
+    if (!token) {
+      throw redirect(
+        `/login?errorMessage=${"usuario invalido, por favor authenticate."}`
+      );
+    }
+    toast.success(`Bienvenido ${token.Name}!`);
+  });
+
   const [showSideBar, setShowSideBar] = useState(false);
   const handleShowSideBar = () => {
     setShowSideBar(!showSideBar);
@@ -56,11 +66,9 @@ const HomePage = () => {
     },
   ];
 
-  // todo: check token if the user is authenticated
-  // decode the token if exists to get the user information(id, username, etc...)
-
   return (
     <>
+      <Toaster position="bottom-right" reverseOrder={false} />
       <Nav showSidebar={handleShowSideBar} />
       <div className="flex justify-between h-auto">
         {showSideBar && <Sidebar />}

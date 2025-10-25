@@ -2,29 +2,41 @@ import Logo from "../components/Logo";
 import Button from "../components/Button";
 import "./styles.css";
 import { useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, redirect } from "react-router-dom";
 import { toast, Toaster } from "react-hot-toast";
+import { register } from "../api/auth";
 
 function RegisterPage() {
   useEffect(() => {
     document.body.classList.add("body");
   });
 
-  const handleRegister = (data) => {
-    const user = data.get("username");
-    const email = data.get("email");
-    const password = data.get("password");
-    const passwordConfirm = data.get("passwordConfirm");
-
-    console.log(user, email, password, passwordConfirm);
+  const handleRegister = async (data) => {
+    const user = data.get("username") ?? null;
+    const email = data.get("email") ?? null;
+    const password = data.get("password") ?? null;
+    const passwordConfirm = data.get("passwordConfirm") ?? null;
 
     if (!user || !email || !password || !passwordConfirm) {
       toast.error("Llene el formulario");
       return;
     }
 
-    // todo: add api request to register the user to the db
-    // then once success redirect to login.
+    const response = await register({
+      NombreUsuario: user,
+      CorreoElectronico: email,
+      PasswordHash: password,
+    });
+
+    if (!response.ok) {
+      toast.error(response?.message);
+      return;
+    }
+
+    toast.success("Usuario registrado exitosamente");
+    const token = response.token;
+    sessionStorage.setItem("user_token", token);
+    throw redirect("/");
   };
 
   return (

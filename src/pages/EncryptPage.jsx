@@ -2,10 +2,17 @@ import Nav from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { useState } from "react";
 import FileUploader from "../components/FileUploader";
-import toast from "react-hot-toast";
 import Button from "../components/Button";
 
 const EncryptPage = () => {
+  onload((e) => {
+    if (!token) {
+      throw redirect(
+        `/login?errorMessage=${"usuario invalido, por favor authenticate."}`
+      );
+    }
+  });
+
   const [showSideBar, setShowSideBar] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
 
@@ -18,7 +25,6 @@ const EncryptPage = () => {
     else if (size < 1024 * 1024) return `${Number(size).toFixed(2)} kb`;
     else if (size < 1024 * 1024 * 1024) return `${Number(size).toFixed(2)} mb`;
   };
-
 
   return (
     <>

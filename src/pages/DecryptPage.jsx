@@ -6,6 +6,15 @@ import toast from "react-hot-toast";
 import Button from "../components/Button";
 
 const DecryptPage = () => {
+  onload((e) => {
+    if (!token) {
+      throw redirect(
+        `/login?errorMessage=${"usuario invalido, por favor authenticate."}`
+      );
+    }
+    toast.success(`Bienvenido ${token.Name}!`);
+  });
+
   const [showSideBar, setShowSideBar] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
 

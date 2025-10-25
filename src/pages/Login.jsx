@@ -1,10 +1,10 @@
-import Nav from "../components/Navbar";
 import Logo from "../components/Logo";
 import "./styles.css";
 import { useEffect, useState } from "react";
 import Button from "../components/Button";
-import { Link } from "react-router-dom";
+import { Link, redirect } from "react-router-dom";
 import { toast, Toaster } from "react-hot-toast";
+import { login } from "../api/auth";
 
 function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -13,26 +13,35 @@ function LoginPage() {
     document.body.classList.add("body");
   });
 
-  const handleLogin = (data) => {
-    const username = data.get("username");
-    const password = data.get("password");
+  const handleLogin = async (data) => {
+    const username = data.get("username") ?? null;
+    const password = data.get("password") ?? null;
 
     if (!username || !password) {
       toast.error("Llene el formulario para iniciar sesion.");
       return;
     }
 
-    // todo: call api to check if user is registered
-    // if true: redirect to home page with token created if user exists
-    // else: show toast error telling the user that the credentials does not exist
-    // or that they dont match.
+    const response = await login({
+      userName: username,
+      password: password,
+    });
+
+    if (!response.ok) {
+      toast.error(response?.message);
+      return;
+    }
+
+    const token = response.token;
+    sessionStorage.setItem("user_token", token);
+    throw redirect("/");
   };
 
   return (
     <>
       <Toaster position="bottom-right" reverseOrder={false} />
       <main className="w-full h-full px-4">
-        <div className="flex justify-center items-center mb-2 h-[90dvh] top-[150px]">
+        <div className="flex justify-center items-center mb-2 h-dvh top-[150px]">
           <section className="w-full h-auto sm:max-w-3xl bg-white rounded-2xl shadow-sm ">
             <div className="p-4 pt-0 pb-7">
               <div className="flex justify-center w-full">
