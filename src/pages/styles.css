@@ -1,0 +1,23 @@
+* {
+  box-sizing: border-box;
+}
+
+html, body{
+  height: 100%;
+  margin: 0;
+}
+
+body.body {
+  background: url("../assets/fondo.png"), rgba(0, 0, 0, 0.3);
+  background-blend-mode: color-burn;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  min-height: 100dvh;
+}
+
+@media (max-width: 600px) {
+  body.body {
+    min-height: 120dvh;
+  }
+}
