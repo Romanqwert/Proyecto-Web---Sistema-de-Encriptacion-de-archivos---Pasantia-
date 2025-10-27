@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using DotNetEnv;
 
 namespace EncriptacionApi
 {
@@ -14,6 +15,9 @@ namespace EncriptacionApi
     {
         public static void Main(string[] args)
         {
+            // Cargar variables del .env
+            Env.Load();
+
             var builder = WebApplication.CreateBuilder(args);
             var config = builder.Configuration;
 
@@ -29,7 +33,7 @@ namespace EncriptacionApi
             builder.Services.AddScoped<IArchivoRepository, ArchivoRepository>();
 
             // DbContext
-            var connectionString = config.GetConnectionString("DefaultConnection");
+            var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION");
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseMySql(
                     connectionString,
@@ -69,18 +73,21 @@ namespace EncriptacionApi
             });
 
             // --- 3. Configurar Autenticación JWT ---
+            var jwtKey = Environment.GetEnvironmentVariable("JWT_SECRET");
+            var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER");
+            var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE");
+
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
-                    var jwtKey = config["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key no encontrada");
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidateIssuer = true,
                         ValidateAudience = true,
                         ValidateLifetime = true,
                         ValidateIssuerSigningKey = true,
-                        ValidIssuer = config["Jwt:Issuer"],
-                        ValidAudience = config["Jwt:Audience"],
+                        ValidIssuer = jwtIssuer,
+                        ValidAudience = jwtAudience,
                         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
                     };
                 });

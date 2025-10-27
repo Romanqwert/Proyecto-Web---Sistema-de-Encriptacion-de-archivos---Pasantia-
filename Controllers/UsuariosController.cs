@@ -77,6 +77,7 @@ namespace EncriptacionApi.Controllers
         private string GenerarToken(Usuario user)
         {
             var claims = new[] {
+                new Claim(ClaimTypes.NameIdentifier, user.IdUsuario.ToString()),
                 new Claim(ClaimTypes.Name, user.NombreUsuario),
                 new Claim(ClaimTypes.Email, user.CorreoElectronico),
             };

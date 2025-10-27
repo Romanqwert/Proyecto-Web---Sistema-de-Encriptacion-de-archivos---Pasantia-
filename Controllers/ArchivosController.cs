@@ -29,7 +29,7 @@ namespace EncriptacionApi.Controllers
 
         /// Sube, encripta y guarda un archivo.
         [HttpPost("upload")]
-        [RequestSizeLimit(100_000_000)] // Límite de 100 MB (ajustar según sea necesario)
+        [RequestSizeLimit(10_000_000)] // Límite de 100 MB (ajustar según sea necesario)
         [ProducesResponseType(typeof(ArchivoInfoDto), 200)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Upload(IFormFile file)

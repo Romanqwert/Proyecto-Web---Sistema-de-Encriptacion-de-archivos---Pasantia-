@@ -43,20 +43,27 @@ namespace EncriptacionApi.Infrastructure.Data
 
             // --- Conversión a Snake Case ---
             // Mantenemos tu lógica de conversión de nombres
-            foreach (var entity in modelBuilder.Model.GetEntityTypes())
-            {
-                // Opcional: convertir nombre de tabla a snake_case
-                // entity.SetTableName(ToSnakeCase(entity.GetTableName()!));
 
-                foreach (var property in entity.GetProperties())
-                {
-                    // Convertir nombre de columna a snake_case
-                    property.SetColumnName(ToSnakeCase(property.Name));
-                }
-            }
+            /*
+             * ELIMINADO: El siguiente bucle foreach se elimina.
+             * CAUSA DEL ERROR: Este bucle sobrescribía la configuración de los atributos [Column("...")]
+             * en las entidades. La conversión "ToSnakeCase" en la propiedad "IVCifrado" (C#)
+             * resultaba en "i_v_cifrado" (SQL), lo cual es incorrecto.
+             * * La forma correcta (que ya está implementada) es usar los atributos [Column("...")]
+             * explícitamente en las propiedades de las entidades (como en Archivo.cs).
+             */
+            // foreach (var entity in modelBuilder.Model.GetEntityTypes())
+            // {
+            //     foreach (var property in entity.GetProperties())
+            //     {
+            //         property.SetColumnName(ToSnakeCase(property.Name));
+            //     }
+            // }
         }
 
+        /// <summary>
         /// Convierte un string de PascalCase a snake_case.
+        /// </summary>
         private static string ToSnakeCase(string input)
         {
             if (string.IsNullOrEmpty(input)) { return input; }
@@ -71,44 +78,3 @@ namespace EncriptacionApi.Infrastructure.Data
         }
     }
 }
-
-
-//using EncriptacionApi.Core.Entities;
-//using Microsoft.EntityFrameworkCore;
-
-//namespace EncriptacionApi.Infrastructure.Data
-//{
-//    public class AppDbContext : DbContext
-//    {
-//        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
-
-//        public DbSet<Usuario> Usuario { get; set; } = null!;
-//        public DbSet<Archivo> Archivo { get; set; } = null!;
-
-//        protected override void OnModelCreating(ModelBuilder modelBuilder)
-//        {
-//            base.OnModelCreating(modelBuilder);
-
-//            foreach (var entity in modelBuilder.Model.GetEntityTypes())
-//            {
-//                // entity.SetTableName(ToSnakeCase(entity.GetTableName()!));
-
-//                foreach (var property in entity.GetProperties())
-//                {
-//                    property.SetColumnName(ToSnakeCase(property.Name));
-//                }
-//            }
-//        }
-
-//        private static string ToSnakeCase(string input)
-//        {
-//            return string.Concat(
-//                input.Select((ch, i) =>
-//                    i > 0 && char.IsUpper(ch)
-//                        ? "_" + char.ToLower(ch)
-//                        : char.ToLower(ch).ToString()
-//                )
-//            );
-//        }
-//    }
-//}
