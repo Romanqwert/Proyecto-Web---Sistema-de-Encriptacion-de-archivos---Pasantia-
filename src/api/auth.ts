@@ -21,6 +21,7 @@ export const register = async (
 ): Promise<Response> => {
   return (await api.post("/register", userData)).data;
 };
+
 export const profile = async (): Promise<Response> => {
   return await api.get("/perfil");
 };
