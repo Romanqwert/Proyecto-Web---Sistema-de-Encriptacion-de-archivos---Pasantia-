@@ -3,78 +3,76 @@ import { Toaster, toast } from "react-hot-toast";
 import Sidebar from "../components/Sidebar";
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
+import { decodeToken, IToken } from "../Functions/token";
+import { listFiles } from "../api/files";
+import { isAxiosError } from "axios";
+import { useEffect } from "react";
 
-type Token = {
-  Name: string;
-  id: number;
-} | null;
-
-type File = {
-  fileName?: string;
-  fileSize?: number;
-  dateUploaded?: string;
+type FileRecord = {
+  NombreArchivo?: string;
+  TipoMime?: string;
+  TamanoBytes?: number;
+  FechaSubida?: string;
 } | null;
 
 const HomePage = () => {
   const storedToken = sessionStorage.getItem("user_token");
-  const token: Token | null = storedToken ? JSON.parse(storedToken) : null;
-  console.log(token);
+  const token: IToken | null = storedToken ? decodeToken(storedToken) : null;
+  const [data, setData] = useState<FileRecord[]>([]);
+
   if (!token) {
     return <Navigate to="/login" replace />;
   }
-  toast.success(`Bienvenido ${token?.Name}!`);
+
+  const username =
+    token["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"];
+  const email =
+    token["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"];
+  const id = Number(
+    token[
+      "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
+    ]
+  );
 
   const [showSideBar, setShowSideBar] = useState(false);
   const handleShowSideBar = () => {
     setShowSideBar(!showSideBar);
   };
 
-  // testing
-  const date: Date = new Date();
-  const data: Array<Object> = [
-    {
-      fileName: "config.json",
-      fileType: ".json",
-      filePath: "/",
-      fileSize: 1024,
-      dateUploaded: date.toString(),
-    },
-    {
-      fileName: "config.config",
-      fileType: ".config",
-      filePath: "/",
-      fileSize: 1024,
-      dateUploaded: date.toString(),
-    },
-    {
-      fileName: "connection.xml",
-      fileType: ".xml",
-      filePath: "/",
-      fileSize: 1024,
-      dateUploaded: date.toString(),
-    },
-    {
-      fileName: "connection.xml",
-      fileType: ".xml",
-      filePath: "/",
-      fileSize: 1024,
-      dateUploaded: date.toString(),
-    },
-    {
-      fileName: "connection.xml",
-      fileType: ".xml",
-      filePath: "/",
-      fileSize: 1024,
-      dateUploaded: date.toString(),
-    },
-    {
-      fileName: "connection.xml",
-      fileType: ".xml",
-      filePath: "/",
-      fileSize: 1024,
-      dateUploaded: date.toString(),
-    },
-  ];
+  const getFiles = async (): Promise<boolean> => {
+    try {
+      const response = await listFiles(id);
+      setData(response.data || []);
+      return true;
+    } catch (error: unknown) {
+      if (isAxiosError(error)) {
+        const serverMessage =
+          (error.response &&
+            (error.response.data?.message || error.response.data)) ||
+          error.message;
+        toast.error(serverMessage || "Error al obtener archivos");
+      } else {
+        toast.error("Error inesperado");
+      }
+      return false;
+    }
+  };
+
+  const formatSize = (size?: number) => {
+    if (!size && size !== 0) return "-";
+    if (size < 1024) return `${size} bytes`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(2)} KB`;
+    return `${(size / (1024 * 1024)).toFixed(2)} MB`;
+  };
+
+  useEffect(() => {
+    const fetchFiles = async () => {
+      const ok = await getFiles();
+      if (ok) toast.success(`Bienvenido ${username}!`);
+    };
+
+    fetchFiles();
+  }, [id]);
 
   return (
     <>
@@ -93,7 +91,7 @@ const HomePage = () => {
             <div className="grid place-content-center w-full gap-3 sm:max-w-7xl px-4">
               {data.length > 0 ? (
                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {data.map((file: File | null, index) => {
+                  {data.map((file: FileRecord | null, index: any) => {
                     return (
                       <li key={index}>
                         <div className="flex flex-row items-center px-3 py-2 gap-4 w-full bg-gray-200 shadow-sm rounded-sm">
@@ -105,15 +103,15 @@ const HomePage = () => {
                           </div>
                           <div className="space-y-1.5">
                             <h2 className="text-xl font-bold">
-                              {file?.fileName}
+                              {file?.NombreArchivo}
                             </h2>
                             <hr />
                             <p className="text-sm sm:text-base">
                               Tamaño del archivo:{" "}
-                              <strong> {file?.fileSize}kb</strong>
+                              <strong> {formatSize(file?.TamanoBytes)}</strong>
                             </p>
                             <p className="text-sm sm:text-base">
-                              Subido en el <strong> {file?.dateUploaded}</strong>
+                              Subido en el <strong> {file?.FechaSubida}</strong>
                             </p>
                           </div>
                         </div>

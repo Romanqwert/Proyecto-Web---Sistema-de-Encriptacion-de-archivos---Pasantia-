@@ -1,11 +1,12 @@
 import { useState, useRef, RefObject } from "react";
-import toast, { Toaster } from "react-hot-toast";
+import { toast, Toaster } from "react-hot-toast";
 
 interface FileUploaderProps {
   setUploadedFiles?: React.Dispatch<React.SetStateAction<File[]>>;
+  filterFiles?: ".json,application/json,.xml,text/xml,.config" | ".enc";
 }
 
-const FileUploader: React.FC<FileUploaderProps> = ({ setUploadedFiles }) => {
+const FileUploader: React.FC<FileUploaderProps> = ({ setUploadedFiles, filterFiles }) => {
   const fileInputRef: RefObject<HTMLInputElement | null> = useRef(null);
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -15,7 +16,6 @@ const FileUploader: React.FC<FileUploaderProps> = ({ setUploadedFiles }) => {
 
     const targetFiles = Array.from(e.dataTransfer.files);
     targetFiles.forEach((file) => {
-      console.log(file);
       if (file.size > 10 * 1024 * 1024)
         toast.error("El archivo no puede ser de mas de 10 MB");
     });
@@ -45,7 +45,6 @@ const FileUploader: React.FC<FileUploaderProps> = ({ setUploadedFiles }) => {
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const targetFiles = Array.from(e.target.files ? e.target.files : []);
     targetFiles.forEach((file) => {
-      console.log(file);
       if (file.size > 10 * 1024 * 1024)
         toast.error("El archivo no puede ser de mas de 10 MB");
     });
@@ -59,8 +58,6 @@ const FileUploader: React.FC<FileUploaderProps> = ({ setUploadedFiles }) => {
       );
       return;
     }
-
-    console.log(targetFiles, uploadedFiles);
 
     setFiles(uploadedFiles);
     setUploadedFiles?.(uploadedFiles);
@@ -94,7 +91,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({ setUploadedFiles }) => {
           ref={fileInputRef}
           type="file"
           multiple
-          accept=".json,application/json,.xml,text/xml,.config"
+          accept={filterFiles}
           className="hidden"
           name="files"
           onChange={handleFiles}

@@ -3,25 +3,32 @@ import Sidebar from "../components/Sidebar";
 import { useState } from "react";
 import FileUploader from "../components/FileUploader";
 import toast from "react-hot-toast";
-import Button from "../components/Button";
 import { Navigate } from "react-router-dom";
-
-type Token = {
-  Name: string;
-  id: number;
-} | null;
+import { decodeToken, IToken } from "../Functions/token";
+import { uploadFile } from "../api/files";
+import cryptoJs from "crypto-js";
 
 const DecryptPage = () => {
   const storedToken = sessionStorage.getItem("user_token");
-  const token: Token | null = storedToken ? JSON.parse(storedToken) : null;
-  console.log(token);
+  const token: IToken | null = storedToken ? decodeToken(storedToken) : null;
+
   if (!token) {
     return <Navigate to="/login" replace />;
   }
-  toast.success(`Bienvenido ${token?.Name}!`);
+
+  const username =
+    token["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"];
+  const email =
+    token["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"];
+  const id = Number(
+    token[
+      "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
+    ]
+  );
 
   const [showSideBar, setShowSideBar] = useState<boolean>(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [key, setKey] = useState<string>("");
 
   const handleShowSideBar = () => {
     setShowSideBar(!showSideBar);
@@ -37,6 +44,80 @@ const DecryptPage = () => {
     if (size < 10485760) {
       toast.error("El archivo no puede ser mayor de 10 MB");
       return;
+    }
+  };
+
+  const wordArrayToUint8Array = (wordArray: any) => {
+    const len = wordArray.sigBytes;
+    const words = wordArray.words;
+    const u8 = new Uint8Array(len);
+    let offset = 0;
+    for (let i = 0; i < words.length; i++) {
+      let word = words[i];
+      u8[offset++] = (word >>> 24) & 0xff;
+      if (offset >= len) break;
+      u8[offset++] = (word >>> 16) & 0xff;
+      if (offset >= len) break;
+      u8[offset++] = (word >>> 8) & 0xff;
+      if (offset >= len) break;
+      u8[offset++] = word & 0xff;
+      if (offset >= len) break;
+    }
+    return u8;
+  };
+
+  const handleDecryptDownload = async () => {
+    const secretKey = key;
+
+    if (!secretKey) {
+      toast.error("Debe ingresar una llave para desencriptar");
+      return;
+    }
+
+    for (const file of uploadedFiles) {
+      try {
+        const encryptedBase64 = await file.text();
+
+        const decryptedWords = cryptoJs.AES.decrypt(encryptedBase64, secretKey);
+
+        if (!decryptedWords || decryptedWords.sigBytes <= 0) {
+          throw new Error("Decryption produced no data");
+        }
+
+        const u8 = wordArrayToUint8Array(decryptedWords);
+
+        const decryptedBlob = new Blob([u8], {
+          type: "application/octet-stream",
+        });
+        const originalName = file.name.replace(".enc", "");
+
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(decryptedBlob);
+        link.download = originalName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        try {
+          const formData = new FormData();
+          formData.append(
+            "file",
+            new File([decryptedBlob], originalName, {
+              type: "application/octet-stream",
+            })
+          );
+          await uploadFile(formData);
+          toast.success("Archivo desencriptado subido correctamente");
+        } catch (err) {
+          console.error(err);
+          toast.error("Error al subir el archivo desencriptado");
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error(
+          "Error al desencriptar el archivo (llave incorrecta o archivo corrupto)"
+        );
+      }
     }
   };
 
@@ -60,13 +141,32 @@ const DecryptPage = () => {
                   <br />
                 </div>
                 <div>
-                  <FileUploader setUploadedFiles={setUploadedFiles} />
+                  <FileUploader
+                    filterFiles=".enc"
+                    setUploadedFiles={setUploadedFiles}
+                  />
                 </div>
                 {uploadedFiles.length > 0 && (
-                  <div>
-                    <Button btnType={"submit"} type={"primary"}>
+                  <div className="grid gap-4">
+                    <div>
+                      <h4 className="text-gray-800 text-sm mb-2">
+                        Ingrese la llave para desencriptar:
+                      </h4>
+                      <input
+                        value={key}
+                        onChange={(e) => setKey(e.target.value)}
+                        type="text"
+                        name="key"
+                        id="key"
+                        className="w-full p-2 shadow-sm rounded-sm bg-gray-200 text-gray-500 outline-0 focus:outline-blue-500 focus:outline-2"
+                      />
+                    </div>
+                    <button
+                      onClick={handleDecryptDownload}
+                      className="w-full h-auto bg-[#264E72] text-white text-medium text-center rounded-sm shadow-sm p-2 cursor-pointer hover:-translate-y-1 hover:shadow-sm transition-all"
+                    >
                       desencriptar
-                    </Button>
+                    </button>
                   </div>
                 )}
                 {uploadedFiles.length > 0 && (

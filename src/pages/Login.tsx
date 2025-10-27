@@ -2,15 +2,16 @@ import Logo from "../components/Logo";
 import "./styles.css";
 import { useEffect, useState } from "react";
 import Button from "../components/Button";
-import { Link, redirect } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { toast, Toaster } from "react-hot-toast";
 import { login } from "../api/auth";
+import { AxiosError } from "axios";
 
 interface Response {
   statusCode?: number;
   message?: string;
   token?: string;
-};
+}
 
 function LoginPage() {
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -28,19 +29,27 @@ function LoginPage() {
       return;
     }
 
-    const response: Response = await login({
-      username: username.toString(),
-      password: password.toString(),
-    });
+    try {
+      const response: Response = await login({
+        correoElectronico: username.toString(),
+        passwordHash: password.toString(),
+      });
 
-    if (!response?.statusCode) {
-      toast.error(response.message ?? "Error invalido");
-      return;
+      const token = response.token;
+
+      if (!token) {
+        toast.error("Inicio de sesion invalido, intente nuevamente");
+        return;
+      }
+
+      sessionStorage.setItem("user_token", token);
+      window.location.href = "http://localhost:3000/";
+    } catch (error: unknown) {
+      if (error instanceof AxiosError) {
+        toast.error(error.response?.data);
+        return;
+      }
     }
-
-    const token = response.token;
-    sessionStorage.setItem("user_token", token!);
-    throw redirect("/");
   };
 
   return (

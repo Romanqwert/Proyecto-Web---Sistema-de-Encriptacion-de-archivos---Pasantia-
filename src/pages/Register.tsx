@@ -2,15 +2,11 @@ import Logo from "../components/Logo";
 import Button from "../components/Button";
 import "./styles.css";
 import { useEffect, useState } from "react";
-import { Link, redirect } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { toast, Toaster } from "react-hot-toast";
 import { register } from "../api/auth";
-
-interface Response {
-  statusCode?: number;
-  message?: string;
-  token?: string;
-}
+import { Response } from "../api/api";
+import { AxiosError } from "axios";
 
 function RegisterPage() {
   useEffect(() => {
@@ -30,20 +26,28 @@ function RegisterPage() {
       return;
     }
 
-    const response: Response = await register({
-      username: user.toString(),
-      password: password.toString(),
-      email: email.toString(),
-    });
+    try {
+      const response: any = await register({
+        nombreUsuario: user.toString(),
+        correoElectronico: email.toString(),
+        passwordHash: password.toString(),
+        fecahRegistro: new Date().toString(),
+      });
+      
+      const token = response.token;
+      if (!token) {
+        toast.error("Inicio de sesion invalido, intente nuevamente");
+        return;
+      }
 
-    if (response?.statusCode != 200) {
-      toast.error(response.message ?? "Error invalido");
-      return;
+      sessionStorage.setItem("user_token", token);
+      window.location.href = "http://localhost:3000/";
+    } catch (error: unknown) {
+      if (error instanceof AxiosError) {
+        toast.error(error.response?.data);
+        return;
+      }
     }
-
-    const token = response?.token;
-    sessionStorage.setItem("user_token", token!);
-    throw redirect("/");
   };
 
   return (
