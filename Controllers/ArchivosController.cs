@@ -110,10 +110,10 @@ namespace EncriptacionApi.Controllers
             try
             {
                 // Extraer publicId desde la URL guardada
-                var publicId = Path.GetFileNameWithoutExtension(archivo.NombreArchivo); // asumiendo que lo guardaste así
+                var publicId = ExtraerPublicIdDesdeUrl(archivo.NombreArchivo);
 
                 // Obtener la URL segura del archivo
-                var fileUrl = await _cloudinaryService.DownloadFileUrlAsync(publicId);
+                var fileUrl = archivo.NombreArchivo;
 
                 // Descargar bytes desde Cloudinary
                 using var httpClient = new HttpClient();
@@ -191,5 +191,12 @@ namespace EncriptacionApi.Controllers
             }
         }
 
+        // https://res.cloudinary.com/dsnwguzkd/raw/upload/v1761568264/archivos_usuario_2/desarrollo_web.txt
+        private string ExtraerSubcadena(string url)
+        {
+            string[] subcadenas = url.Split("/");
+            string publicId = subcadenas[6];
+            return publicId;
+        }
     }
 }
