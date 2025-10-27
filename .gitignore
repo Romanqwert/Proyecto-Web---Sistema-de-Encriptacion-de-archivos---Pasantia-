@@ -20,5 +20,5 @@ publish/
 *.bak
 *.swp
 
-.env
-appsettings*.json
+# BD
+*.env

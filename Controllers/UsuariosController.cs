@@ -1,5 +1,5 @@
-﻿using EncriptacionApi.Data;
-using EncriptacionApi.Models;
+using EncriptacionApi.Core.Entities;
+using EncriptacionApi.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -77,6 +77,7 @@ namespace EncriptacionApi.Controllers
         private string GenerarToken(Usuario user)
         {
             var claims = new[] {
+                new Claim(ClaimTypes.NameIdentifier, user.IdUsuario.ToString()),
                 new Claim(ClaimTypes.Name, user.NombreUsuario),
                 new Claim(ClaimTypes.Email, user.CorreoElectronico),
             };
