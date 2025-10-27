@@ -1,5 +1,6 @@
 using EncriptacionApi.Application.DTOs;
 using EncriptacionApi.Application.Interfaces;
+using EncriptacionApi.Application.Services;
 using EncriptacionApi.Core.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,15 +17,18 @@ namespace EncriptacionApi.Controllers
         private readonly IEncryptionService _encryptionService;
         private readonly IArchivoRepository _archivoRepository;
         private readonly IHistorialService _historialService;
+        private readonly ICloudinaryService _cloudinaryService;
 
         public ArchivosController(
             IEncryptionService encryptionService,
             IArchivoRepository archivoRepository,
-            IHistorialService historialService)
+            IHistorialService historialService,
+            ICloudinaryService cloudinaryService)
         {
             _encryptionService = encryptionService;
             _archivoRepository = archivoRepository;
             _historialService = historialService;
+            _cloudinaryService = cloudinaryService;
         }
 
         /// Sube, encripta y guarda un archivo.
@@ -43,9 +47,19 @@ namespace EncriptacionApi.Controllers
             try
             {
                 // 1. Encriptar el archivo
-                var encryptedData = await _encryptionService.EncryptFileAsync(file);
+                // var encryptedData = await _encryptionService.EncryptFileAsync(file);
 
-                // 2. Crear la entidad Archivo
+                using var memoryStream = new MemoryStream();
+                await file.CopyToAsync(memoryStream);
+                var fileBytes = memoryStream.ToArray();
+
+                // 2. Subir el archivo cifrado a Clodinary
+                var fileUrl = await _cloudinaryService.UploadFileAsync(
+                    fileBytes,
+                    file.FileName
+                );
+
+                // 3. Crear la entidad Archivo
                 var archivo = new Archivo
                 {
                     IdUsuario = idUsuario,
@@ -58,13 +72,13 @@ namespace EncriptacionApi.Controllers
                     IVCifrado = encryptedData.IV
                 };
 
-                // 3. Guardar en la BD
+                // 4. Guardar en la BD
                 await _archivoRepository.AddAsync(archivo);
 
-                // 4. Registrar en historial
+                // 5. Registrar en historial
                 await _historialService.RegistrarAccion(idUsuario, null, "ENCRYPT_FILE", "SUCCESS", ip);
 
-                // 5. Devolver DTO con información
+                // 6. Devolver DTO con información
                 var archivoInfo = new ArchivoInfoDto
                 {
                     IdArchivo = archivo.IdArchivo,
@@ -112,16 +126,17 @@ namespace EncriptacionApi.Controllers
 
             try
             {
-                // 1. Desencriptar el contenido
-                var decryptedStream = await _encryptionService.DecryptFileAsync(
-                    archivo.ContenidoCifrado,
+                // 1. Descargar el archivo cifrado desde Cloudinary
+                using var httpClient = new HttpClient();
+                var encryptedData = await httpClient.GetByteArrayAsync(archivo.NombreArchivo);
+
+                // 2. Desencriptar
+                /*var decryptedStream = await _encryptionService.DecryptFileAsync(
+                    encryptedData,
                     archivo.ClaveCifrado,
-                    archivo.IVCifrado);
+                    archivo.IVCifrado
+                );*/
 
-                // 2. Registrar en historial
-                await _historialService.RegistrarAccion(idUsuario, null, "DECRYPT_FILE", "SUCCESS", ip);
-
-                // 3. Devolver el archivo para descarga
                 return File(decryptedStream, archivo.TipoMime, archivo.NombreArchivo);
             }
             catch (Exception ex)
