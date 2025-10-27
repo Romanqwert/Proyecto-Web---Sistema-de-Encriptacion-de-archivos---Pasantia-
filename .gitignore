@@ -22,4 +22,3 @@ publish/
 
 # BD
 *.env
-appsettings*.json

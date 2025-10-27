@@ -1,4 +1,4 @@
-﻿using EncriptacionApi.Core.Entities;
+using EncriptacionApi.Core.Entities;
 using EncriptacionApi.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

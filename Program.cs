@@ -34,7 +34,7 @@ namespace EncriptacionApi
 
             // DbContext
             var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION");
-            builder.Services.AddDbContext<AppDbContext>(options =>
+            builder.Services.AddDbContext<AppDbContext>(options => 
                 options.UseMySql(
                     connectionString,
                     new MySqlServerVersion(new Version(8, 0, 36)) // Ajusta tu versión de MySQL
@@ -98,6 +98,7 @@ namespace EncriptacionApi
             // --- 4. Construir y Configurar el Pipeline HTTP ---
             var app = builder.Build();
 
+            // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -109,6 +110,7 @@ namespace EncriptacionApi
             // Habilitar Autenticación y Autorización
             app.UseAuthentication(); // <-- Añadido
             app.UseAuthorization();
+
 
             app.MapControllers();
 
