@@ -18,7 +18,7 @@ namespace EncriptacionApi.Controllers
         private readonly IArchivoRepository _archivoRepository;
         private readonly IHistorialService _historialService;
         private readonly ICloudinaryService _cloudinaryService;
-
+        
         public ArchivosController(
             IEncryptionService encryptionService,
             IArchivoRepository archivoRepository,
@@ -46,49 +46,34 @@ namespace EncriptacionApi.Controllers
 
             try
             {
-                // 1. Encriptar el archivo
-                // var encryptedData = await _encryptionService.EncryptFileAsync(file);
-
                 using var memoryStream = new MemoryStream();
                 await file.CopyToAsync(memoryStream);
                 var fileBytes = memoryStream.ToArray();
 
-                // 2. Subir el archivo cifrado a Clodinary
-                var fileUrl = await _cloudinaryService.UploadFileAsync(
-                    fileBytes,
-                    file.FileName
-                );
+                // Nombre de la carpeta dinámica
+                var folderName = $"archivos_usuario_{idUsuario}";
 
-                // 3. Crear la entidad Archivo
+                // Subir a Cloudinary dentro de esa carpeta
+                var fileUrl = await _cloudinaryService.UploadFileAsync(fileBytes, file.FileName, folderName);
+
+                // Guardar en BD
                 var archivo = new Archivo
                 {
                     IdUsuario = idUsuario,
-                    NombreArchivo = file.FileName,
+                    NombreArchivo = fileUrl,
                     TipoMime = file.ContentType,
                     TamanoBytes = file.Length,
-                    FechaSubida = DateTime.UtcNow,
-                    ContenidoCifrado = encryptedData.EncryptedContent,
-                    ClaveCifrado = encryptedData.Key,
-                    IVCifrado = encryptedData.IV
+                    FechaSubida = DateTime.UtcNow
                 };
 
-                // 4. Guardar en la BD
                 await _archivoRepository.AddAsync(archivo);
+                await _historialService.RegistrarAccion(idUsuario, null, "UPLOAD_FILE", "SUCCESS", ip);
 
-                // 5. Registrar en historial
-                await _historialService.RegistrarAccion(idUsuario, null, "ENCRYPT_FILE", "SUCCESS", ip);
-
-                // 6. Devolver DTO con información
-                var archivoInfo = new ArchivoInfoDto
+                return Ok(new
                 {
-                    IdArchivo = archivo.IdArchivo,
-                    NombreArchivo = archivo.NombreArchivo,
-                    TipoMime = archivo.TipoMime,
-                    TamanoBytes = archivo.TamanoBytes,
-                    FechaSubida = archivo.FechaSubida
-                };
-
-                return Ok(archivoInfo);
+                    archivo.IdArchivo,
+                    archivo.NombreArchivo
+                });
             }
             catch (Exception ex)
             {
@@ -110,40 +95,38 @@ namespace EncriptacionApi.Controllers
 
             var archivo = await _archivoRepository.GetByIdAsync(id);
 
-            // Validar que el archivo exista
             if (archivo == null)
             {
-                await _historialService.RegistrarAccion(idUsuario, null, "DECRYPT_FILE", "NOT_FOUND", ip);
+                await _historialService.RegistrarAccion(idUsuario, null, "DOWNLOAD_FILE", "NOT_FOUND", ip);
                 return NotFound("El archivo no existe.");
             }
 
-            // Validar que el archivo pertenezca al usuario
             if (archivo.IdUsuario != idUsuario)
             {
-                await _historialService.RegistrarAccion(idUsuario, null, "DECRYPT_FILE", "FORBIDDEN", ip);
+                await _historialService.RegistrarAccion(idUsuario, null, "DOWNLOAD_FILE", "FORBIDDEN", ip);
                 return Forbid("No tiene permiso para acceder a este archivo.");
             }
 
             try
             {
-                // 1. Descargar el archivo cifrado desde Cloudinary
+                // Extraer publicId desde la URL guardada
+                var publicId = Path.GetFileNameWithoutExtension(archivo.NombreArchivo); // asumiendo que lo guardaste así
+
+                // Obtener la URL segura del archivo
+                var fileUrl = await _cloudinaryService.DownloadFileUrlAsync(publicId);
+
+                // Descargar bytes desde Cloudinary
                 using var httpClient = new HttpClient();
-                var encryptedData = await httpClient.GetByteArrayAsync(archivo.NombreArchivo);
+                var fileBytes = await httpClient.GetByteArrayAsync(fileUrl);
 
-                // 2. Desencriptar
-                /*var decryptedStream = await _encryptionService.DecryptFileAsync(
-                    encryptedData,
-                    archivo.ClaveCifrado,
-                    archivo.IVCifrado
-                );*/
+                await _historialService.RegistrarAccion(idUsuario, 2, "DOWNLOAD_FILE", "SUCCESS", ip);
 
-                return File(decryptedStream, archivo.TipoMime, archivo.NombreArchivo);
+                return File(fileBytes, archivo.TipoMime, Path.GetFileName(archivo.NombreArchivo));
             }
             catch (Exception ex)
             {
-                // Loggear ex
-                await _historialService.RegistrarAccion(idUsuario, null, "DECRYPT_FILE", "FAILURE", ip);
-                return StatusCode(500, $"Error interno al desencriptar el archivo: {ex.Message}");
+                await _historialService.RegistrarAccion(idUsuario, id, "DOWNLOAD_FILE", "FAILURE", ip);
+                return StatusCode(500, $"Error al descargar el archivo: {ex.Message}");
             }
         }
 
@@ -185,5 +168,28 @@ namespace EncriptacionApi.Controllers
         {
             return HttpContext.Connection.RemoteIpAddress?.ToString() ?? "desconocida";
         }
+
+        private string ExtraerPublicIdDesdeUrl(string url)
+        {
+            try
+            {
+                var uri = new Uri(url);
+                var path = uri.AbsolutePath; // /mi_cloud/raw/upload/v17300000/mis_archivos/documento.pdf
+                var partes = path.Split("/upload/");
+
+                if (partes.Length < 2)
+                    return string.Empty;
+
+                var despuesDeUpload = partes[1];
+                var sinVersion = despuesDeUpload.Substring(despuesDeUpload.IndexOf('/') + 1);
+                var sinExtension = Path.Combine(Path.GetDirectoryName(sinVersion) ?? "", Path.GetFileNameWithoutExtension(sinVersion));
+                return sinExtension.Replace("\\", "/");
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
     }
 }

@@ -25,7 +25,7 @@ namespace EncriptacionApi
 
             // Servicios de Aplicación
             builder.Services.AddScoped<ITokenService, TokenService>();
-            builder.Services.AddScoped<IHistorialService, HistorialService>();
+            builder.Services.AddScoped<IHistorialService, Application.Interfaces.HistorialService>();
             builder.Services.AddSingleton<IEncryptionService, EncryptionService>(); // Singleton es eficiente aquí
             builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 

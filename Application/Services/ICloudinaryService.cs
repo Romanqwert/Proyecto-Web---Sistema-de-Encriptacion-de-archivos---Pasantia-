@@ -5,7 +5,7 @@ namespace EncriptacionApi.Application.Services
 {
     public interface ICloudinaryService
     {
-        Task<string> UploadFileAsync(byte[] fileBytes, string fileName);
+        Task<string> UploadFileAsync(byte[] fileBytes, string fileName, string folderName);
         Task<string> DownloadFileUrlAsync(string publicId);
     }
     public class CloudinaryService : ICloudinaryService
@@ -15,23 +15,27 @@ namespace EncriptacionApi.Application.Services
         public CloudinaryService(IConfiguration config)
         {
             var account = new Account(
-                config["Cloudinary:CloudName"],
-                config["Cloudinary:ApiKey"],
-                config["Cloudinary:ApiSecret"]
+                Environment.GetEnvironmentVariable("CLOUD_NAME"),
+                Environment.GetEnvironmentVariable("API_KEY"),
+                Environment.GetEnvironmentVariable("API_SECRET")
             );
             _cloudinary = new Cloudinary(account);
         }
 
-        public async Task<string> UploadFileAsync(byte[] fileBytes, string fileName)
+        public async Task<string> UploadFileAsync(byte[] fileBytes, string fileName, string folderName)
         {
             using var stream = new MemoryStream(fileBytes);
+
             var uploadParams = new RawUploadParams
             {
                 File = new FileDescription(fileName, stream),
-                Folder = "archivos_encriptados"
+                Folder = folderName, // aquí indicas la carpeta
+                PublicId = Path.GetFileNameWithoutExtension(fileName), // opcional
+                Overwrite = true
             };
+
             var uploadResult = await _cloudinary.UploadAsync(uploadParams);
-            return uploadResult.SecureUrl.ToString(); // URL HTTPS del archivo
+            return uploadResult.SecureUrl.ToString();
         }
 
         public async Task<string> DownloadFileUrlAsync(string publicId)
