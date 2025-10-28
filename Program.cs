@@ -21,6 +21,23 @@ namespace EncriptacionApi
             var builder = WebApplication.CreateBuilder(args);
             var config = builder.Configuration;
 
+            // Define un nombre para tu política de CORS
+            var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+
+            // Agrega el servicio de CORS
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy(name: MyAllowSpecificOrigins,
+                                  policy =>
+                                  {
+                                      // 3. Especifica el dominio de tu frontend
+                                      policy.WithOrigins("https://frontend-encriptacion.vercel.app")
+                                            .AllowAnyHeader()
+                                            .AllowAnyMethod();
+                                  });
+            });
+
+
             // --- 1. Registrar Servicios (Inyección de Dependencias) ---
 
             // Servicios de Aplicación
@@ -107,6 +124,8 @@ namespace EncriptacionApi
             }
 
             app.UseHttpsRedirection();
+
+            app.UseCors(MyAllowSpecificOrigins); // <-- Añadido
 
             // Habilitar Autenticación y Autorización
             app.UseAuthentication(); // <-- Añadido
