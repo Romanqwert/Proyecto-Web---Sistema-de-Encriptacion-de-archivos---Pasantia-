@@ -31,7 +31,7 @@ namespace EncriptacionApi
                                   policy =>
                                   {
                                       // 3. Especifica el dominio de tu frontend
-                                      policy.WithOrigins("https://frontend-encriptacion-git-main-romanqwerts-projects.vercel.app")
+                                      policy.AllowAnyOrigin()
                                             .AllowAnyHeader()
                                             .AllowAnyMethod();
                                   });
