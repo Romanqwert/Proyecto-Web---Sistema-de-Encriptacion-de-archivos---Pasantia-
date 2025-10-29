@@ -28,13 +28,14 @@ namespace EncriptacionApi
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy(name: MyAllowSpecificOrigins,
-                                  policy =>
-                                  {
-                                      // 3. Especifica el dominio de tu frontend
-                                      policy.AllowAnyOrigin()
-                                            .AllowAnyHeader()
-                                            .AllowAnyMethod();
-                                  });
+                    policy =>
+                    {
+                        policy
+                        .SetIsOriginAllowed(_ => true) // Permite cualquier origen dinámicamente
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();
+                    });
             });
 
 
