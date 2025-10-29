@@ -67,7 +67,7 @@ namespace EncriptacionApi.Controllers
                 };
 
                 await _archivoRepository.AddAsync(archivo);
-                await _historialService.RegistrarAccion(idUsuario, null, "UPLOAD_FILE", "SUCCESS", ip);
+                await _historialService.RegistrarAccion(idUsuario, 1, "UPLOAD_FILE", "SUCCESS", ip);
 
                 return Ok(new
                 {
@@ -97,13 +97,13 @@ namespace EncriptacionApi.Controllers
 
             if (archivo == null)
             {
-                await _historialService.RegistrarAccion(idUsuario, null, "DOWNLOAD_FILE", "NOT_FOUND", ip);
+                await _historialService.RegistrarAccion(idUsuario, 2, "DOWNLOAD_FILE", "NOT_FOUND", ip);
                 return NotFound("El archivo no existe.");
             }
 
             if (archivo.IdUsuario != idUsuario)
             {
-                await _historialService.RegistrarAccion(idUsuario, null, "DOWNLOAD_FILE", "FORBIDDEN", ip);
+                await _historialService.RegistrarAccion(idUsuario, 2, "DOWNLOAD_FILE", "FORBIDDEN", ip);
                 return Forbid("No tiene permiso para acceder a este archivo.");
             }
 
