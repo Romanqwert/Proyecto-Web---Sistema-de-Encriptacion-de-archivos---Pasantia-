@@ -22,20 +22,18 @@ namespace EncriptacionApi
             var config = builder.Configuration;
 
             // Define un nombre para tu política de CORS
-            var MyAllowSpecificOrigins = "AllowReactApp";
+            var MyAllowSpecificOrigins = "AllowAll";
 
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy(name: MyAllowSpecificOrigins,
                                   policy =>
                                   {
-                                      // 🔹 Especifica exactamente el dominio de tu frontend
-                                      policy.WithOrigins("https://frontend-encriptacion.vercel.app",
-                                          "http://localhost:3000",
-                                          "https://v0-api-endpoints-for-files.vercel.app/")
-                                            .AllowAnyHeader()
-                                            .AllowAnyMethod()
-                                            .AllowCredentials();
+                                      // Especifica exactamente el dominio de tu frontend
+                                      policy
+                                        .AllowAnyOrigin()   // Permite cualquier dominio
+                                        .AllowAnyHeader()   // Permite cualquier header (ej. Authorization)
+                                        .AllowAnyMethod();
                                   });
             });
 
