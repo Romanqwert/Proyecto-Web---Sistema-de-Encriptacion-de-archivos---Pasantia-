@@ -22,7 +22,7 @@ namespace EncriptacionApi
             var config = builder.Configuration;
 
             // Define un nombre para tu política de CORS
-            var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+            var MyAllowSpecificOrigins = "AllowReactApp";
 
             builder.Services.AddCors(options =>
             {
@@ -117,6 +117,8 @@ namespace EncriptacionApi
             // --- 4. Construir y Configurar el Pipeline HTTP ---
             var app = builder.Build();
 
+            app.UseCors(MyAllowSpecificOrigins);
+
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
@@ -126,12 +128,10 @@ namespace EncriptacionApi
 
             app.UseHttpsRedirection();
 
-            app.UseRouting();
-
-            app.UseCors(MyAllowSpecificOrigins); // <-- Añadido
+            // app.UseRouting();
 
             // Habilitar Autenticación y Autorización
-            app.UseAuthentication(); // <-- Añadido
+            // app.UseAuthentication(); // <-- Añadido
             app.UseAuthorization();
 
 
