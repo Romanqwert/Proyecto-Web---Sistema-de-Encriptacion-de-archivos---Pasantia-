@@ -116,8 +116,6 @@ namespace EncriptacionApi
             // --- 4. Construir y Configurar el Pipeline HTTP ---
             var app = builder.Build();
 
-            app.UseCors(MyAllowSpecificOrigins);
-
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
@@ -129,8 +127,10 @@ namespace EncriptacionApi
 
             // app.UseRouting();
 
+            app.UseCors(MyAllowSpecificOrigins);
+
             // Habilitar Autenticación y Autorización
-            // app.UseAuthentication(); // <-- Añadido
+            app.UseAuthentication();
             app.UseAuthorization();
 
 
