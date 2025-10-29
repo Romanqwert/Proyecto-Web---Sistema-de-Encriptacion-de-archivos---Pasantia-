@@ -78,7 +78,7 @@ namespace EncriptacionApi.Controllers
             catch (Exception ex)
             {
                 // Loggear ex (no implementado aquí)
-                await _historialService.RegistrarAccion(idUsuario, null, "ENCRYPT_FILE", "FAILURE", ip);
+                await _historialService.RegistrarAccion(idUsuario, 1, "ENCRYPT_FILE", "FAILURE", ip);
                 return StatusCode(500, $"Error interno al encriptar el archivo: {ex.Message}");
             }
         }
@@ -125,7 +125,7 @@ namespace EncriptacionApi.Controllers
             }
             catch (Exception ex)
             {
-                await _historialService.RegistrarAccion(idUsuario, id, "DOWNLOAD_FILE", "FAILURE", ip);
+                await _historialService.RegistrarAccion(idUsuario, 2, "DOWNLOAD_FILE", "FAILURE", ip);
                 return StatusCode(500, $"Error al descargar el archivo: {ex.Message}");
             }
         }
