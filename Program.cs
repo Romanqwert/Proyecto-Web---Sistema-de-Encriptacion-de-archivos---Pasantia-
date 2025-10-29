@@ -1,4 +1,4 @@
-using EncriptacionApi.Application.Interfaces;
+ï»¿using EncriptacionApi.Application.Interfaces;
 using EncriptacionApi.Application.Services;
 using EncriptacionApi.Infrastructure.Data;
 using EncriptacionApi.Infrastructure.Repositories;
@@ -21,30 +21,30 @@ namespace EncriptacionApi
             var builder = WebApplication.CreateBuilder(args);
             var config = builder.Configuration;
 
-            // Define un nombre para tu política de CORS
+            // Define un nombre para tu polÃ­tica de CORS
             var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
-            // Agrega el servicio de CORS
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy(name: MyAllowSpecificOrigins,
-                    policy =>
-                    {
-                        policy
-                        .SetIsOriginAllowed(_ => true) // Permite cualquier origen dinámicamente
-                        .AllowAnyHeader()
-                        .AllowAnyMethod()
-                        .AllowCredentials();
-                    });
+                                  policy =>
+                                  {
+                                      // ðŸ”¹ Especifica exactamente el dominio de tu frontend
+                                      policy.WithOrigins("https://frontend-encriptacion.vercel.app",
+                                          "http://localhost:3000")
+                                            .AllowAnyHeader()
+                                            .AllowAnyMethod()
+                                            .AllowCredentials();
+                                  });
             });
 
 
-            // --- 1. Registrar Servicios (Inyección de Dependencias) ---
+            // --- 1. Registrar Servicios (InyecciÃ³n de Dependencias) ---
 
-            // Servicios de Aplicación
+            // Servicios de AplicaciÃ³n
             builder.Services.AddScoped<ITokenService, TokenService>();
             builder.Services.AddScoped<IHistorialService, Application.Interfaces.HistorialService>();
-            builder.Services.AddSingleton<IEncryptionService, EncryptionService>(); // Singleton es eficiente aquí
+            builder.Services.AddSingleton<IEncryptionService, EncryptionService>(); // Singleton es eficiente aquÃ­
             builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 
             // Repositorios de Infraestructura
@@ -56,7 +56,7 @@ namespace EncriptacionApi
             builder.Services.AddDbContext<AppDbContext>(options => 
                 options.UseMySql(
                     connectionString,
-                    new MySqlServerVersion(new Version(8, 0, 36)) // Ajusta tu versión de MySQL
+                    new MySqlServerVersion(new Version(8, 0, 36)) // Ajusta tu versiÃ³n de MySQL
                 )
             );
 
@@ -91,7 +91,7 @@ namespace EncriptacionApi
                 });
             });
 
-            // --- 3. Configurar Autenticación JWT ---
+            // --- 3. Configurar AutenticaciÃ³n JWT ---
             var jwtKey = Environment.GetEnvironmentVariable("JWT_SECRET");
             var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER");
             var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE");
@@ -126,10 +126,12 @@ namespace EncriptacionApi
 
             app.UseHttpsRedirection();
 
-            app.UseCors(MyAllowSpecificOrigins); // <-- Añadido
+            app.UseRouting();
 
-            // Habilitar Autenticación y Autorización
-            app.UseAuthentication(); // <-- Añadido
+            app.UseCors(MyAllowSpecificOrigins); // <-- AÃ±adido
+
+            // Habilitar AutenticaciÃ³n y AutorizaciÃ³n
+            app.UseAuthentication(); // <-- AÃ±adido
             app.UseAuthorization();
 
 
