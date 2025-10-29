@@ -31,7 +31,8 @@ namespace EncriptacionApi
                                   {
                                       // 🔹 Especifica exactamente el dominio de tu frontend
                                       policy.WithOrigins("https://frontend-encriptacion.vercel.app",
-                                          "http://localhost:3000")
+                                          "http://localhost:3000",
+                                          "https://v0-api-endpoints-for-files.vercel.app/")
                                             .AllowAnyHeader()
                                             .AllowAnyMethod()
                                             .AllowCredentials();
