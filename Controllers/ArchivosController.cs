@@ -47,34 +47,14 @@ namespace EncriptacionApi.Controllers
 
             try
             {
-                using var memoryStream = new MemoryStream();
-                await file.CopyToAsync(memoryStream);
-                var fileBytes = memoryStream.ToArray();
+                var (Bytes, Name) = await ProcessFileAsync(file);
 
-                var key = Environment.GetEnvironmentVariable("ENCRYPTION_KEY");
-                if (string.IsNullOrEmpty(key))
-                    throw new Exception("La clave de encriptación no está configurada.");
-
-                var encryptedBytes = EncryptFileBytes(fileBytes, key);
-
-                // Nombre de la carpeta dinámica
                 var folderName = $"archivos_usuario_{idUsuario}";
-                var encryptedFileName = $"{Path.GetFileNameWithoutExtension(file.FileName)}_encrypted{Path.GetExtension(file.FileName)}";
 
-                // Subir a Cloudinary dentro de esa carpeta
-                var fileUrl = await _cloudinaryService.UploadFileAsync(encryptedBytes, encryptedFileName, folderName);
+                var fileUrl = await _cloudinaryService.UploadFileAsync(Bytes, Name, folderName);
 
-                // Guardar en BD
-                var archivo = new Archivo
-                {
-                    IdUsuario = idUsuario,
-                    NombreArchivo = fileUrl,
-                    TipoMime = file.ContentType,
-                    TamanoBytes = file.Length,
-                    FechaSubida = DateTime.UtcNow
-                };
-                
-                await _archivoRepository.AddAsync(archivo);
+                var archivo = await SaveFileRecordAsync(file, fileUrl, idUsuario);
+
                 await _historialService.RegistrarAccion(idUsuario, 1, "UPLOAD_FILE", "SUCCESS", ip);
 
                 return Ok(new
@@ -214,6 +194,37 @@ namespace EncriptacionApi.Controllers
             }
 
             return ms.ToArray();
+        }
+
+        private async Task<(byte[] Bytes, string Name)> ProcessFileAsync(IFormFile file)
+        {
+            using var memoryStream = new MemoryStream();
+            await file.CopyToAsync(memoryStream);
+            var fileBytes = memoryStream.ToArray();
+
+            var key = Environment.GetEnvironmentVariable("ENCRYPTION_KEY");
+            if (string.IsNullOrEmpty(key))
+                throw new InvalidOperationException("La clave de encriptación no está configurada.");
+
+            var encryptedBytes = EncryptFileBytes(fileBytes, key);
+
+            var encryptedFileName = $"{Path.GetFileNameWithoutExtension(file.FileName)}_encrypted{Path.GetExtension(file.FileName)}";
+            return (encryptedBytes, encryptedFileName);
+        }
+
+        private async Task<Archivo> SaveFileRecordAsync(IFormFile file, string fileUrl, int idUsuario)
+        {
+            var archivo = new Archivo
+            {
+                IdUsuario = idUsuario,
+                NombreArchivo = fileUrl,
+                TipoMime = file.ContentType,
+                TamanoBytes = file.Length,
+                FechaSubida = DateTime.UtcNow
+            };
+
+            await _archivoRepository.AddAsync(archivo);
+            return archivo;
         }
     }
 }
