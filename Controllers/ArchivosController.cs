@@ -5,6 +5,7 @@ using EncriptacionApi.Core.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using System.Security.Cryptography;
 
 namespace EncriptacionApi.Controllers
 {
@@ -50,11 +51,18 @@ namespace EncriptacionApi.Controllers
                 await file.CopyToAsync(memoryStream);
                 var fileBytes = memoryStream.ToArray();
 
+                var key = Environment.GetEnvironmentVariable("ENCRYPTION_KEY");
+                if (string.IsNullOrEmpty(key))
+                    throw new Exception("La clave de encriptación no está configurada.");
+
+                var encryptedBytes = EncryptFileBytes(fileBytes, key);
+
                 // Nombre de la carpeta dinámica
                 var folderName = $"archivos_usuario_{idUsuario}";
+                var encryptedFileName = $"{Path.GetFileNameWithoutExtension(file.FileName)}_encrypted{Path.GetExtension(file.FileName)}";
 
                 // Subir a Cloudinary dentro de esa carpeta
-                var fileUrl = await _cloudinaryService.UploadFileAsync(fileBytes, file.FileName, folderName);
+                var fileUrl = await _cloudinaryService.UploadFileAsync(encryptedBytes, encryptedFileName, folderName);
 
                 // Guardar en BD
                 var archivo = new Archivo
@@ -191,12 +199,21 @@ namespace EncriptacionApi.Controllers
             }
         }
 
-        // https://res.cloudinary.com/dsnwguzkd/raw/upload/v1761568264/archivos_usuario_2/desarrollo_web.txt
-        private string ExtraerSubcadena(string url)
+        private byte[] EncryptFileBytes(byte[] inputBytes, string keyString)
         {
-            string[] subcadenas = url.Split("/");
-            string publicId = subcadenas[6];
-            return publicId;
+            using var aes = Aes.Create();
+            aes.Key = Convert.FromBase64String(keyString);
+            aes.GenerateIV();
+
+            using var encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
+            using var ms = new MemoryStream();
+            ms.Write(aes.IV, 0, aes.IV.Length); // Prepend IV
+            using (var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
+            {
+                cs.Write(inputBytes, 0, inputBytes.Length);
+            }
+
+            return ms.ToArray();
         }
     }
 }
