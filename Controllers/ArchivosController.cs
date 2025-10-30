@@ -107,9 +107,15 @@ namespace EncriptacionApi.Controllers
                 using var httpClient = new HttpClient();
                 var fileBytes = await httpClient.GetByteArrayAsync(fileUrl);
 
+                var keyBase64 = Environment.GetEnvironmentVariable("ENCRYPTION_KEY");
+                if (string.IsNullOrEmpty(keyBase64))
+                    throw new InvalidOperationException("La clave de encriptación no está configurada.");
+
+                var decryptedBytes = DecryptFileBytes(fileBytes, keyBase64);
+
                 await _historialService.RegistrarAccion(idUsuario, 2, "DOWNLOAD_FILE", "SUCCESS", ip);
 
-                return File(fileBytes, archivo.TipoMime, Path.GetFileName(archivo.NombreArchivo));
+                return File(decryptedBytes, archivo.TipoMime, Path.GetFileName(archivo.NombreArchivo));
             }
             catch (Exception ex)
             {
@@ -226,5 +232,28 @@ namespace EncriptacionApi.Controllers
             await _archivoRepository.AddAsync(archivo);
             return archivo;
         }
+
+        private byte[] DecryptFileBytes(byte[] encryptedBytes, string keyBase64)
+        {
+            using var aes = Aes.Create();
+            aes.Key = Convert.FromBase64String(keyBase64);
+
+            // El IV está al inicio del archivo (16 bytes)
+            var iv = new byte[aes.BlockSize / 8];
+            Array.Copy(encryptedBytes, 0, iv, 0, iv.Length);
+
+            aes.IV = iv;
+
+            using var decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
+            using var ms = new MemoryStream();
+            using (var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Write))
+            {
+                // Escribir el resto del archivo (después del IV)
+                cs.Write(encryptedBytes, iv.Length, encryptedBytes.Length - iv.Length);
+            }
+
+            return ms.ToArray();
+        }
+
     }
 }
