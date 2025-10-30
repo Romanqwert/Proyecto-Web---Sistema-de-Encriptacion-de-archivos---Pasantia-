@@ -28,6 +28,9 @@ namespace EncriptacionApi.Core.Entities
         [Column("fecha_subida")]
         public DateTime FechaSubida { get; set; } = DateTime.UtcNow;
 
+        [Column("url_archivo")]
+        public string UrlArchivo { get; set; } = string.Empty;
+
         // --- Datos de Encriptación ---
 
         /// El contenido binario del archivo, encriptado con AES.

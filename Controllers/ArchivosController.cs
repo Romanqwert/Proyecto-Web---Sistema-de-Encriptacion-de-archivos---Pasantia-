@@ -98,10 +98,10 @@ namespace EncriptacionApi.Controllers
             try
             {
                 // Extraer publicId desde la URL guardada
-                var publicId = ExtraerPublicIdDesdeUrl(archivo.NombreArchivo);
+                var publicId = ExtraerPublicIdDesdeUrl(archivo.UrlArchivo);
 
                 // Obtener la URL segura del archivo
-                var fileUrl = archivo.NombreArchivo;
+                var fileUrl = archivo.UrlArchivo;
 
                 // Descargar bytes desde Cloudinary
                 using var httpClient = new HttpClient();
@@ -115,7 +115,7 @@ namespace EncriptacionApi.Controllers
 
                 await _historialService.RegistrarAccion(idUsuario, 2, "DOWNLOAD_FILE", "SUCCESS", ip);
 
-                return File(decryptedBytes, archivo.TipoMime, Path.GetFileName(archivo.NombreArchivo));
+                return File(decryptedBytes, archivo.TipoMime, archivo.NombreArchivo);
             }
             catch (Exception ex)
             {
