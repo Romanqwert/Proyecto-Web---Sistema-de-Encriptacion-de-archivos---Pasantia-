@@ -46,17 +46,16 @@ namespace EncriptacionApi.Controllers
 
             try
             {
-                Console.WriteLine($"Upload iniciado por usuairo: ${idUsuario}");
                 using var memoryStream = new MemoryStream();
                 await file.CopyToAsync(memoryStream);
                 var fileBytes = memoryStream.ToArray();
-                Console.WriteLine("Archivo copiado en memoria");
+
                 // Nombre de la carpeta dinámica
                 var folderName = $"archivos_usuario_{idUsuario}";
-                Console.WriteLine("Subiendo a Cloudinary...");
+
                 // Subir a Cloudinary dentro de esa carpeta
                 var fileUrl = await _cloudinaryService.UploadFileAsync(fileBytes, file.FileName, folderName);
-                Console.WriteLine($"Subida Completada: {fileUrl}");
+
                 // Guardar en BD
                 var archivo = new Archivo
                 {
@@ -66,9 +65,8 @@ namespace EncriptacionApi.Controllers
                     TamanoBytes = file.Length,
                     FechaSubida = DateTime.UtcNow
                 };
-                Console.WriteLine("Guardando en BD...");
+                
                 await _archivoRepository.AddAsync(archivo);
-                Console.WriteLine("Registrando accion...");
                 await _historialService.RegistrarAccion(idUsuario, 1, "UPLOAD_FILE", "SUCCESS", ip);
 
                 return Ok(new
@@ -79,7 +77,6 @@ namespace EncriptacionApi.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Upload Error: {ex.Message}");
                 // Loggear ex (no implementado aquí)
                 await _historialService.RegistrarAccion(idUsuario, 1, "ENCRYPT_FILE", "FAILURE", ip);
                 return StatusCode(500, $"Error interno al encriptar el archivo: {ex.Message}");
