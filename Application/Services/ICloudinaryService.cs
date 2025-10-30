@@ -25,6 +25,8 @@ namespace EncriptacionApi.Application.Services
         public async Task<string> UploadFileAsync(byte[] fileBytes, string fileName, string folderName)
         {
             Console.WriteLine($"Cloud Name: {Environment.GetEnvironmentVariable("CLOUD_NAME")}");
+            Console.WriteLine($"Cloudinary API KEY: {Environment.GetEnvironmentVariable("API_KEY")}");
+            Console.WriteLine($"Cloudinary API SECRET: {Environment.GetEnvironmentVariable("API_SECRET")}");
             using var stream = new MemoryStream(fileBytes);
 
             var uploadParams = new RawUploadParams
