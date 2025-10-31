@@ -139,10 +139,40 @@ namespace EncriptacionApi.Controllers
                 NombreArchivo = a.NombreArchivo,
                 TipoMime = a.TipoMime,
                 TamanoBytes = a.TamanoBytes,
-                FechaSubida = a.FechaSubida
+                FechaSubida = a.FechaSubida,
+                UrlArchivo = a.UrlArchivo
             }).OrderByDescending(a => a.FechaSubida);
 
             return Ok(archivosInfo);
+        }
+
+        [HttpGet("list/download")]
+        [ProducesResponseType(typeof(IEnumerable<ArchivoInfoDto>), 200)]
+        public async Task<IActionResult> ListDownload()
+        {
+            var idUsuario = GetCurrentUserId();
+            var archivos = await _archivoRepository.FindAsync(a => a.IdUsuario == idUsuario);
+
+            var archivosDisponibles = new List<ArchivoInfoDto>();
+
+            foreach (var archivo in archivos)
+            {
+                int index = archivosDisponibles.FindIndex(a => ExtraerPublicIdDesdeUrl(a.UrlArchivo) == ExtraerPublicIdDesdeUrl(archivo.UrlArchivo));
+                if (index == -1)
+                {
+                    archivosDisponibles.Add(new ArchivoInfoDto
+                    {
+                        IdArchivo = archivo.IdArchivo,
+                        NombreArchivo = archivo.NombreArchivo,
+                        TipoMime = archivo.TipoMime,
+                        TamanoBytes = archivo.TamanoBytes,
+                        FechaSubida = archivo.FechaSubida,
+                        UrlArchivo = archivo.UrlArchivo
+                    });
+                }
+            }
+
+            return Ok(archivosDisponibles);
         }
 
 

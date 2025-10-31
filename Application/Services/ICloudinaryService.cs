@@ -7,6 +7,8 @@ namespace EncriptacionApi.Application.Services
     {
         Task<string> UploadFileAsync(byte[] fileBytes, string fileName, string folderName);
         Task<string> DownloadFileUrlAsync(string publicId);
+
+        Task<GetResourceResult> GetResourceAsync(string publicId);
     }
     public class CloudinaryService : ICloudinaryService
     {
@@ -43,6 +45,11 @@ namespace EncriptacionApi.Application.Services
             // Retorna la URL pública (no descarga el binario, solo el enlace)
             var resource = await _cloudinary.GetResourceAsync(new GetResourceParams(publicId));
             return resource.SecureUrl;
+        }
+
+        public async Task<GetResourceResult> GetResourceAsync(string publicId)
+        {
+            return await _cloudinary.GetResourceAsync(publicId);
         }
     }
 }

@@ -8,5 +8,6 @@
         public string TipoMime { get; set; } = string.Empty;
         public long TamanoBytes { get; set; }
         public DateTime FechaSubida { get; set; }
+        public string UrlArchivo { get; set; } = string.Empty;
     }
 }
