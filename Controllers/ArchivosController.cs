@@ -223,10 +223,11 @@ namespace EncriptacionApi.Controllers
             var archivo = new Archivo
             {
                 IdUsuario = idUsuario,
-                NombreArchivo = fileUrl,
+                NombreArchivo = Path.GetFileName(fileUrl),
                 TipoMime = file.ContentType,
                 TamanoBytes = file.Length,
-                FechaSubida = DateTime.UtcNow
+                FechaSubida = DateTime.UtcNow,
+                UrlArchivo = fileUrl
             };
 
             await _archivoRepository.AddAsync(archivo);
