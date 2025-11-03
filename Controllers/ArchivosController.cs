@@ -72,6 +72,53 @@ namespace EncriptacionApi.Controllers
         }
 
         /// Descarga y desencripta un archivo por su ID.
+        [HttpGet("download/unencrypted/{id}")]
+        [ProducesResponseType(typeof(FileContentResult), 200)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> DownloadUnencrypted(int id)
+        {
+            var idUsuario = GetCurrentUserId();
+            var ip = GetCurrentIpAddress();
+
+            var archivo = await _archivoRepository.GetByIdAsync(id);
+
+            if (archivo == null)
+            {
+                await _historialService.RegistrarAccion(idUsuario, 2, "DOWNLOAD_FILE", "NOT_FOUND", ip);
+                return NotFound("El archivo no existe.");
+            }
+
+            if (archivo.IdUsuario != idUsuario)
+            {
+                await _historialService.RegistrarAccion(idUsuario, 2, "DOWNLOAD_FILE", "FORBIDDEN", ip);
+                return Forbid("No tiene permiso para acceder a este archivo.");
+            }
+
+            try
+            {
+                // Extraer publicId desde la URL guardada
+                var publicId = ExtraerPublicIdDesdeUrl(archivo.UrlArchivo);
+
+                // Obtener la URL segura del archivo
+                var fileUrl = archivo.UrlArchivo;
+
+                // Descargar bytes desde Cloudinary
+                using var httpClient = new HttpClient();
+                var fileBytes = await httpClient.GetByteArrayAsync(fileUrl);
+
+                await _historialService.RegistrarAccion(idUsuario, 2, "DOWNLOAD_FILE", "SUCCESS", ip);
+
+                return File(fileBytes, archivo.TipoMime, archivo.NombreArchivo);
+            }
+            catch (Exception ex)
+            {
+                await _historialService.RegistrarAccion(idUsuario, 2, "DOWNLOAD_FILE", "FAILURE", ip);
+                return StatusCode(500, $"Error al descargar el archivo: {ex.Message}");
+            }
+        }
+
+        /// Descarga y desencripta un archivo por su ID.
         [HttpGet("download/{id}")]
         [ProducesResponseType(typeof(FileContentResult), 200)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
