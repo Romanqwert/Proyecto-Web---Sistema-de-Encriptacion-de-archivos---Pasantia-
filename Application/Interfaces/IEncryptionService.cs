@@ -19,5 +19,6 @@ namespace EncriptacionApi.Application.Interfaces
         Task<MemoryStream> DecryptFileAsync(byte[] encryptedData, byte[] key, byte[] iv);
 
         Task<byte[]> EncryptConfigFileAsync(IFormFile file, string encryptionKey);
+        Task<byte[]> DecryptConfigFileAsync(IFormFile file, string encryptionKey);
     }
 }

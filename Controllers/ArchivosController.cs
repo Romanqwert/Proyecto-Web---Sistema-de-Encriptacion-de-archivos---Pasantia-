@@ -4,6 +4,7 @@ using EncriptacionApi.Application.Services;
 using EncriptacionApi.Core.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Org.BouncyCastle.Utilities;
 using System.Security.Claims;
 using System.Security.Cryptography;
 
@@ -149,6 +150,7 @@ namespace EncriptacionApi.Controllers
 
                 // Obtener la URL segura del archivo
                 var fileUrl = archivo.UrlArchivo;
+                string fileName = archivo.NombreArchivo;
 
                 // Descargar bytes desde Cloudinary
                 using var httpClient = new HttpClient();
@@ -158,7 +160,7 @@ namespace EncriptacionApi.Controllers
                 if (string.IsNullOrEmpty(keyBase64))
                     throw new InvalidOperationException("La clave de encriptación no está configurada.");
 
-                var decryptedBytes = DecryptFileBytes(fileBytes, keyBase64);
+                var decryptedBytes = DecryptFileBytes(fileBytes, keyBase64, fileName);
 
                 await _historialService.RegistrarAccion(idUsuario, 2, "DOWNLOAD_FILE", "SUCCESS", ip);
 
@@ -333,10 +335,18 @@ namespace EncriptacionApi.Controllers
             return archivo;
         }
 
-        private byte[] DecryptFileBytes(byte[] encryptedBytes, string keyBase64)
+        private byte[] DecryptFileBytes(byte[] encryptedBytes, string keyBase64, string fileName)
         {
             using var aes = Aes.Create();
             aes.Key = Convert.FromBase64String(keyBase64);
+
+            string extension = Path.GetExtension(fileName).ToLower();
+            if (extension == ".json" || extension == ".xml" || extension == ".config")
+            {
+                IFormFile file = ByteArrayToFormFile(encryptedBytes, fileName, "application/json");
+                var decryptedBytes = _encryptionService.DecryptConfigFileAsync(file, keyBase64).Result;
+                return decryptedBytes;
+            }
 
             // El IV está al inicio del archivo (16 bytes)
             var iv = new byte[aes.BlockSize / 8];
@@ -353,6 +363,18 @@ namespace EncriptacionApi.Controllers
             }
 
             return ms.ToArray();
+        }
+
+        public static IFormFile ByteArrayToFormFile(byte[] fileBytes, string fileName, string contentType = "application/octet-stream")
+        {
+            var stream = new MemoryStream(fileBytes);
+            var formFile = new FormFile(stream, 0, fileBytes.Length, "file", fileName)
+            {
+                Headers = new HeaderDictionary(),
+                ContentType = contentType
+            };
+
+            return formFile;
         }
     }
 }

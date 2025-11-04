@@ -71,6 +71,7 @@ namespace EncriptacionApi.Application.Services
         }
 
         // Funciones para encriptar xml o config
+        #region Encriptar XML / CONFIG
         private string EncryptXml(string xml, string key)
         {
             var doc = new System.Xml.XmlDocument();
@@ -114,8 +115,9 @@ namespace EncriptacionApi.Application.Services
                 EncryptXmlNodes(child, key);
             }
         }
+        #endregion
 
-        // Funciones para encriptar json
+        #region Encriptar JSON
         private string EncryptJson(string json, string key)
         {
             var data = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
@@ -205,6 +207,142 @@ namespace EncriptacionApi.Application.Services
                 _ => element.GetRawText()
             };
         }
+        #endregion
 
+        // Desencriptar config file
+        public async Task<byte[]> DecryptConfigFileAsync(IFormFile file, string encryptionKey)
+        {
+            var extension = Path.GetExtension(file.FileName).ToLower();
+            using var reader = new StreamReader(file.OpenReadStream());
+            var content = await reader.ReadToEndAsync();
+
+            string decryptedContent = extension switch
+            {
+                ".json" => DecryptJson(content, encryptionKey),
+                ".xml" or ".config" => DecryptXml(content, encryptionKey),
+                _ => throw new NotSupportedException($"Formato {extension} no soportado.")
+            };
+
+            return System.Text.Encoding.UTF8.GetBytes(decryptedContent);
+        }
+
+        #region 🔓 JSON Decryption
+
+        private string DecryptJson(string json, string key)
+        {
+            var data = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+            var decrypted = DecryptValuesRecursively(data, key);
+            return JsonSerializer.Serialize(decrypted, new JsonSerializerOptions { WriteIndented = true });
+        }
+
+        private object DecryptValuesRecursively(object value, string key)
+        {
+            if (value is JsonElement el)
+            {
+                return el.ValueKind switch
+                {
+                    JsonValueKind.String => TryDecryptString(el.GetString() ?? "", key),
+                    JsonValueKind.Object => DecryptValuesRecursively(JsonToDictionary(el), key),
+                    JsonValueKind.Array => el.EnumerateArray().Select(v => DecryptValuesRecursively(v, key)).ToList(),
+                    _ => value
+                };
+            }
+            if (value is Dictionary<string, object> dict)
+            {
+                return dict.ToDictionary(kvp => kvp.Key, kvp => DecryptValuesRecursively(kvp.Value, key));
+            }
+            if (value is string st)
+            {
+                return TryDecryptString(st, key);
+            }
+            return value;
+        }
+
+        #endregion
+
+        #region XML / CONFIG Decryption
+
+        private string DecryptXml(string xml, string key)
+        {
+            var doc = new System.Xml.XmlDocument();
+            doc.LoadXml(xml);
+            DecryptXmlNodes(doc.DocumentElement!, key);
+
+            using var stringWriter = new StringWriter();
+            using var xmlWriter = new System.Xml.XmlTextWriter(stringWriter)
+            {
+                Formatting = System.Xml.Formatting.Indented
+            };
+            doc.WriteTo(xmlWriter);
+            xmlWriter.Flush();
+            return stringWriter.ToString();
+        }
+
+        private void DecryptXmlNodes(System.Xml.XmlNode node, string key)
+        {
+            // Desencripta valor del nodo si es texto
+            if (node.NodeType == System.Xml.XmlNodeType.Text ||
+                node.NodeType == System.Xml.XmlNodeType.CDATA)
+            {
+                node.Value = TryDecryptString(node.Value ?? string.Empty, key);
+                return;
+            }
+
+            // Desencripta atributos (menos los de "key" y "name")
+            if (node.Attributes != null)
+            {
+                foreach (System.Xml.XmlAttribute attr in node.Attributes)
+                {
+                    if (attr.Name == "key" || attr.Name == "name") continue;
+                    attr.Value = TryDecryptString(attr.Value, key);
+                }
+            }
+
+            // Recursión sobre nodos hijos
+            foreach (System.Xml.XmlNode child in node.ChildNodes)
+            {
+                DecryptXmlNodes(child, key);
+            }
+        }
+
+        #endregion
+
+        #region Helpers
+
+        private string TryDecryptString(string cipherText, string key)
+        {
+            try
+            {
+                return DecryptString(cipherText, key);
+            }
+            catch
+            {
+                // Si no se puede desencriptar (no es Base64 válido o no fue encriptado),
+                // se devuelve el texto original
+                return cipherText;
+            }
+        }
+
+        private string DecryptString(string cipherText, string key)
+        {
+            var fullCipher = Convert.FromBase64String(cipherText);
+            using var aes = Aes.Create();
+            aes.Key = Convert.FromBase64String(key);
+
+            var iv = new byte[aes.BlockSize / 8];
+            var cipher = new byte[fullCipher.Length - iv.Length];
+
+            Buffer.BlockCopy(fullCipher, 0, iv, 0, iv.Length);
+            Buffer.BlockCopy(fullCipher, iv.Length, cipher, 0, cipher.Length);
+            aes.IV = iv;
+
+            using var decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
+            using var ms = new MemoryStream(cipher);
+            using var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read);
+            using var reader = new StreamReader(cs);
+            return reader.ReadToEnd();
+        }
+
+        #endregion
     }
 }
