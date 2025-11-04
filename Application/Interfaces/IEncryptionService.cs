@@ -17,5 +17,7 @@ namespace EncriptacionApi.Application.Interfaces
         // <param name="iv">El vector de inicialización.</param>
         // <returns>Un MemoryStream con los datos desencriptados.</returns>
         Task<MemoryStream> DecryptFileAsync(byte[] encryptedData, byte[] key, byte[] iv);
+
+        Task<byte[]> EncryptConfigFileAsync(IFormFile file, string encryptionKey);
     }
 }

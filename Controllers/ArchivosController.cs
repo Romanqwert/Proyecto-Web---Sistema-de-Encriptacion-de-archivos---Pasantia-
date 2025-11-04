@@ -302,9 +302,18 @@ namespace EncriptacionApi.Controllers
             if (string.IsNullOrEmpty(key))
                 throw new InvalidOperationException("La clave de encriptación no está configurada.");
 
-            var encryptedBytes = EncryptFileBytes(fileBytes, key);
+            byte[] encryptedBytes;
 
-            var encryptedFileName = $"{Path.GetFileNameWithoutExtension(file.FileName)}_encrypted{Path.GetExtension(file.FileName)}";
+            string extension = Path.GetExtension(file.FileName).ToLower();
+            if (extension == ".json" || extension == ".xml" || extension == ".config") { 
+                encryptedBytes = await _encryptionService.EncryptConfigFileAsync(file, key);
+            }
+            else
+            {
+                encryptedBytes = EncryptFileBytes(fileBytes, key);
+            }
+
+            var encryptedFileName = file.FileName;
             return (encryptedBytes, encryptedFileName);
         }
 
@@ -345,6 +354,5 @@ namespace EncriptacionApi.Controllers
 
             return ms.ToArray();
         }
-
     }
 }
