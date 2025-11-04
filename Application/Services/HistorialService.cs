@@ -15,6 +15,11 @@ namespace EncriptacionApi.Application.Services
             _context = context;
         }
 
+        public async Task<List<Historial>> GetUserHistoryAsync(int userId)
+        {
+            return await _context.Historial.Where(h => h.IdUsuario == userId).ToListAsync<Historial>();
+        }
+
         /// Registra una nueva acción en la base de datos.
         public async Task RegistrarAccion(int idUsuario, int? idAlgoritmo, string accion, string resultado, string ipOrigen)
         {

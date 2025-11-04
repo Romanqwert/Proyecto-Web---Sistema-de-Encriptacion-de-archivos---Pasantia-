@@ -1,5 +1,6 @@
 ﻿using EncriptacionApi.Core.Entities;
 using EncriptacionApi.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace EncriptacionApi.Application.Interfaces
 {
@@ -13,6 +14,7 @@ namespace EncriptacionApi.Application.Interfaces
         // <param name="resultado">Resultado de la acción (ej. "SUCCESS").</param>
         // <param name="ipOrigen">Dirección IP desde donde se realizó la acción.</param>
         Task RegistrarAccion(int idUsuario, int? idAlgoritmo, string accion, string resultado, string ipOrigen);
+        Task<List<Historial>> GetUserHistoryAsync(int userId);
     }
 
     public class HistorialService : IHistorialService
@@ -22,6 +24,14 @@ namespace EncriptacionApi.Application.Interfaces
         public HistorialService(AppDbContext context)
         {
             _context = context;
+        }
+
+        public async Task<List<Historial>> GetUserHistoryAsync(int userId)
+        {
+            return await _context.Historial
+                .Where(h => h.IdUsuario == userId)
+                .OrderByDescending(h => h.IdHistorial)
+                .ToListAsync<Historial>();
         }
 
         public async Task RegistrarAccion(int idUsuario, int? idAlgoritmo, string accion, string resultado, string ipOrigen)

@@ -222,7 +222,20 @@ namespace EncriptacionApi.Controllers
             return Ok(archivosDisponibles);
         }
 
-
+        [HttpGet("history")]
+        [ProducesResponseType(typeof(IEnumerable<ArchivoInfoDto>), 200)]
+        public async Task<IActionResult> GetHistory()
+        {
+            var idUsuario = GetCurrentUserId();
+            try { 
+                var historial = await _historialService.GetUserHistoryAsync(idUsuario);
+         
+                return Ok(historial);
+            } catch (Exception ex)
+            {
+                return StatusCode(500, $"Error al obtener el historial de acciones. {ex.Message}");
+            }
+        }
         // --- Métodos de Ayuda ---
 
         private int GetCurrentUserId()
