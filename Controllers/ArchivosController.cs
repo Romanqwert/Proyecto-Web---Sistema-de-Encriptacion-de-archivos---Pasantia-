@@ -309,14 +309,11 @@ namespace EncriptacionApi.Controllers
             string extension = Path.GetExtension(file.FileName).ToLower();
             if (extension == ".json" || extension == ".xml" || extension == ".config") { 
                 encryptedBytes = await _encryptionService.EncryptConfigFileAsync(file, key);
-            }
-            else
-            {
-                encryptedBytes = EncryptFileBytes(fileBytes, key);
+                return (encryptedBytes, file.FileName);
             }
 
-            var encryptedFileName = file.FileName;
-            return (encryptedBytes, encryptedFileName);
+            encryptedBytes = EncryptFileBytes(fileBytes, key);
+            return (encryptedBytes, file.FileName);
         }
 
         private async Task<Archivo> SaveFileRecordAsync(IFormFile file, string fileUrl, int idUsuario)
