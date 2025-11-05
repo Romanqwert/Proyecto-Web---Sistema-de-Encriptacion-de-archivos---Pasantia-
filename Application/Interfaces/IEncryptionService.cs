@@ -1,5 +1,4 @@
 ﻿using EncriptacionApi.Application.DTOs;
-using Microsoft.AspNetCore.Http;
 
 namespace EncriptacionApi.Application.Interfaces
 {
