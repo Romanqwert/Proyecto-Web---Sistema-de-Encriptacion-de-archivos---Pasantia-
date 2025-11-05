@@ -20,5 +20,8 @@ namespace EncriptacionApi.Application.Interfaces
 
         Task<byte[]> EncryptConfigFileAsync(IFormFile file, string encryptionKey);
         Task<byte[]> DecryptConfigFileAsync(IFormFile file, string encryptionKey);
+
+        Task<(byte[] Bytes, string Name)> ProcessFileAsync(IFormFile file);
+        byte[] DecryptFileBytes(byte[] encryptedBytes, string keyBase64, string fileName);
     }
 }

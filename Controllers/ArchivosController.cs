@@ -5,7 +5,6 @@ using EncriptacionApi.Core.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using System.Security.Cryptography;
 
 namespace EncriptacionApi.Controllers
 {
@@ -47,7 +46,7 @@ namespace EncriptacionApi.Controllers
 
             try
             {
-                var (Bytes, Name) = await ProcessFileAsync(file);
+                var (Bytes, Name) = await _encryptionService.ProcessFileAsync(file);
 
                 var folderName = $"archivos_usuario_{idUsuario}";
 
@@ -159,7 +158,7 @@ namespace EncriptacionApi.Controllers
                 if (string.IsNullOrEmpty(keyBase64))
                     throw new InvalidOperationException("La clave de encriptación no está configurada.");
 
-                var decryptedBytes = DecryptFileBytes(fileBytes, keyBase64, fileName);
+                var decryptedBytes = _encryptionService.DecryptFileBytes(fileBytes, keyBase64, fileName);
 
                 await _historialService.RegistrarAccion(idUsuario, 2, "DOWNLOAD_FILE", "SUCCESS", ip);
 
@@ -237,8 +236,8 @@ namespace EncriptacionApi.Controllers
                 return StatusCode(500, $"Error al obtener el historial de acciones. {ex.Message}");
             }
         }
-        // --- Métodos de Ayuda ---
 
+        #region Helper functions
         private int GetCurrentUserId()
         {
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -276,45 +275,6 @@ namespace EncriptacionApi.Controllers
             }
         }
 
-        private byte[] EncryptFileBytes(byte[] inputBytes, string keyString)
-        {
-            using var aes = Aes.Create();
-            aes.Key = Convert.FromBase64String(keyString);
-            aes.GenerateIV();
-
-            using var encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
-            using var ms = new MemoryStream();
-            ms.Write(aes.IV, 0, aes.IV.Length); // Prepend IV
-            using (var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
-            {
-                cs.Write(inputBytes, 0, inputBytes.Length);
-            }
-
-            return ms.ToArray();
-        }
-
-        private async Task<(byte[] Bytes, string Name)> ProcessFileAsync(IFormFile file)
-        {
-            using var memoryStream = new MemoryStream();
-            await file.CopyToAsync(memoryStream);
-            var fileBytes = memoryStream.ToArray();
-
-            var key = Environment.GetEnvironmentVariable("ENCRYPTION_KEY");
-            if (string.IsNullOrEmpty(key))
-                throw new InvalidOperationException("La clave de encriptación no está configurada.");
-
-            byte[] encryptedBytes;
-
-            string extension = Path.GetExtension(file.FileName).ToLower();
-            if (extension == ".json" || extension == ".xml" || extension == ".config") { 
-                encryptedBytes = await _encryptionService.EncryptConfigFileAsync(file, key);
-                return (encryptedBytes, file.FileName);
-            }
-
-            encryptedBytes = EncryptFileBytes(fileBytes, key);
-            return (encryptedBytes, file.FileName);
-        }
-
         private async Task<Archivo> SaveFileRecordAsync(IFormFile file, string fileUrl, int idUsuario)
         {
             var archivo = new Archivo
@@ -330,47 +290,6 @@ namespace EncriptacionApi.Controllers
             await _archivoRepository.AddAsync(archivo);
             return archivo;
         }
-
-        private byte[] DecryptFileBytes(byte[] encryptedBytes, string keyBase64, string fileName)
-        {
-            using var aes = Aes.Create();
-            aes.Key = Convert.FromBase64String(keyBase64);
-
-            string extension = Path.GetExtension(fileName).ToLower();
-            if (extension == ".json" || extension == ".xml" || extension == ".config")
-            {
-                IFormFile file = ByteArrayToFormFile(encryptedBytes, fileName, "application/json");
-                var decryptedBytes = _encryptionService.DecryptConfigFileAsync(file, keyBase64).Result;
-                return decryptedBytes;
-            }
-
-            // El IV está al inicio del archivo (16 bytes)
-            var iv = new byte[aes.BlockSize / 8];
-            Array.Copy(encryptedBytes, 0, iv, 0, iv.Length);
-
-            aes.IV = iv;
-
-            using var decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
-            using var ms = new MemoryStream();
-            using (var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Write))
-            {
-                // Escribir el resto del archivo (después del IV)
-                cs.Write(encryptedBytes, iv.Length, encryptedBytes.Length - iv.Length);
-            }
-
-            return ms.ToArray();
-        }
-
-        public static IFormFile ByteArrayToFormFile(byte[] fileBytes, string fileName, string contentType = "application/octet-stream")
-        {
-            var stream = new MemoryStream(fileBytes);
-            var formFile = new FormFile(stream, 0, fileBytes.Length, "file", fileName)
-            {
-                Headers = new HeaderDictionary(),
-                ContentType = contentType
-            };
-
-            return formFile;
-        }
+        #endregion
     }
 }

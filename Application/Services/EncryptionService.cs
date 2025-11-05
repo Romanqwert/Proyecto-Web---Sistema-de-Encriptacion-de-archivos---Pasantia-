@@ -52,6 +52,88 @@ namespace EncriptacionApi.Application.Services
             return outputStream;
         }
 
+        public async Task<(byte[] Bytes, string Name)> ProcessFileAsync(IFormFile file)
+        {
+            using var memoryStream = new MemoryStream();
+            await file.CopyToAsync(memoryStream);
+            var fileBytes = memoryStream.ToArray();
+
+            var key = Environment.GetEnvironmentVariable("ENCRYPTION_KEY");
+            if (string.IsNullOrEmpty(key))
+                throw new InvalidOperationException("La clave de encriptación no está configurada.");
+
+            byte[] encryptedBytes;
+
+            string extension = Path.GetExtension(file.FileName).ToLower();
+            if (extension == ".json" || extension == ".xml" || extension == ".config")
+            {
+                encryptedBytes = await EncryptConfigFileAsync(file, key);
+                return (encryptedBytes, file.FileName);
+            }
+
+            encryptedBytes = EncryptFileBytes(fileBytes, key);
+            return (encryptedBytes, file.FileName);
+        }
+
+        private byte[] EncryptFileBytes(byte[] inputBytes, string keyString)
+        {
+            using var aes = Aes.Create();
+            aes.Key = Convert.FromBase64String(keyString);
+            aes.GenerateIV();
+
+            using var encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
+            using var ms = new MemoryStream();
+            ms.Write(aes.IV, 0, aes.IV.Length); // Prepend IV
+            using (var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
+            {
+                cs.Write(inputBytes, 0, inputBytes.Length);
+            }
+
+            return ms.ToArray();
+        }
+
+        public byte[] DecryptFileBytes(byte[] encryptedBytes, string keyBase64, string fileName)
+        {
+            using var aes = Aes.Create();
+            aes.Key = Convert.FromBase64String(keyBase64);
+
+            string extension = Path.GetExtension(fileName).ToLower();
+            if (extension == ".json" || extension == ".xml" || extension == ".config")
+            {
+                IFormFile file = ByteArrayToFormFile(encryptedBytes, fileName, "application/json");
+                var decryptedBytes = DecryptConfigFileAsync(file, keyBase64).Result;
+                return decryptedBytes;
+            }
+
+            // El IV está al inicio del archivo (16 bytes)
+            var iv = new byte[aes.BlockSize / 8];
+            Array.Copy(encryptedBytes, 0, iv, 0, iv.Length);
+
+            aes.IV = iv;
+
+            using var decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
+            using var ms = new MemoryStream();
+            using (var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Write))
+            {
+                // Escribir el resto del archivo (después del IV)
+                cs.Write(encryptedBytes, iv.Length, encryptedBytes.Length - iv.Length);
+            }
+
+            return ms.ToArray();
+        }
+
+        private static IFormFile ByteArrayToFormFile(byte[] fileBytes, string fileName, string contentType = "application/octet-stream")
+        {
+            var stream = new MemoryStream(fileBytes);
+            var formFile = new FormFile(stream, 0, fileBytes.Length, "file", fileName)
+            {
+                Headers = new HeaderDictionary(),
+                ContentType = contentType
+            };
+
+            return formFile;
+        }
+
         public async Task<byte[]> EncryptConfigFileAsync(IFormFile file, string encryptionKey)
         {
             var extension = Path.GetExtension(file.FileName).ToLower();
@@ -226,7 +308,7 @@ namespace EncriptacionApi.Application.Services
             return System.Text.Encoding.UTF8.GetBytes(decryptedContent);
         }
 
-        #region 🔓 JSON Decryption
+        #region JSON Decryption
 
         private string DecryptJson(string json, string key)
         {
