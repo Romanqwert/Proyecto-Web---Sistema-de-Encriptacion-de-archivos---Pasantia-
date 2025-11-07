@@ -33,26 +33,28 @@ namespace EncriptacionApi.Controllers
 
         /// Sube, encripta y guarda un archivo.
         [HttpPost("upload")]
-        [RequestSizeLimit(10_000_000)] // Límite de 100 MB (ajustar según sea necesario)
+        [RequestSizeLimit(10_000_000)] // Límite de 10 MB (ajustar según sea necesario)
         [ProducesResponseType(typeof(ArchivoInfoDto), 200)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> Upload(IFormFile file)
+        public async Task<IActionResult> Upload([FromForm] UploadWithMetadataRequest request)
         {
-            if (file == null || file.Length == 0)
+            if (request.File == null || request.File.Length == 0)
                 return BadRequest("No se ha seleccionado ningún archivo.");
 
             var idUsuario = GetCurrentUserId();
             var ip = GetCurrentIpAddress();
 
+            var encriptionKey = string.IsNullOrEmpty(request.EncryptionKey) ? null : request.EncryptionKey;
+
             try
             {
-                var (Bytes, Name) = await _encryptionService.ProcessFileAsync(file);
+                var (Bytes, Name) = await _encryptionService.ProcessFileAsync(request.File, request.EncryptionKey ?? null);
 
                 var folderName = $"archivos_usuario_{idUsuario}";
 
                 var fileUrl = await _cloudinaryService.UploadFileAsync(Bytes, Name, folderName);
 
-                var archivo = await SaveFileRecordAsync(file, fileUrl, idUsuario);
+                var archivo = await SaveFileRecordAsync(request.File, fileUrl, idUsuario);
 
                 await _historialService.RegistrarAccion(idUsuario, 1, "UPLOAD_FILE", "SUCCESS", ip);
 

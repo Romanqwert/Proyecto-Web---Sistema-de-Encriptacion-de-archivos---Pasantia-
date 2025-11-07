@@ -1,5 +1,6 @@
 ﻿using EncriptacionApi.Application.DTOs;
 using EncriptacionApi.Application.Interfaces;
+using Microsoft.IdentityModel.Tokens;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -52,13 +53,22 @@ namespace EncriptacionApi.Application.Services
             return outputStream;
         }
 
-        public async Task<(byte[] Bytes, string Name)> ProcessFileAsync(IFormFile file)
+        public async Task<(byte[] Bytes, string Name)> ProcessFileAsync(IFormFile file, string? encriptionKey)
         {
             using var memoryStream = new MemoryStream();
             await file.CopyToAsync(memoryStream);
             var fileBytes = memoryStream.ToArray();
 
-            var key = Environment.GetEnvironmentVariable("ENCRYPTION_KEY");
+            try
+            {
+                Convert.FromBase64String(encriptionKey ?? string.Empty);
+            }
+            catch (FormatException)
+            {
+                throw new InvalidOperationException("La clave de encriptación proporcionada no es una cadena Base64 válida.");
+            }
+
+            var key = encriptionKey ?? Environment.GetEnvironmentVariable("ENCRYPTION_KEY");
             if (string.IsNullOrEmpty(key))
                 throw new InvalidOperationException("La clave de encriptación no está configurada.");
 
@@ -225,7 +235,8 @@ namespace EncriptacionApi.Application.Services
                 // Console.WriteLine($"dictionary {value.ToString()}");
                 return dict.ToDictionary(kvp => kvp.Key, kvp => EncryptValuesRecursively(kvp.Value, key));
             }
-            if (value is string st) {
+            if (value is string st)
+            {
                 return EncryptString(st, key);
             }
             return value;
