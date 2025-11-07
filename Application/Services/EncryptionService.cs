@@ -111,8 +111,12 @@ namespace EncriptacionApi.Application.Services
         public byte[] DecryptFileBytes(byte[] encryptedBytes, string keyBase64, string fileName)
         {
             using var aes = Aes.Create();
-            aes.Key = Convert.FromBase64String(keyBase64);
-
+            
+            // Derivar una key de 256 bits(32 bytes) desde el password
+            byte[] salt = Encoding.UTF8.GetBytes("MiSaltUnico12345"); // Mejor usar un salt aleatorio y guardarlo
+            using var deriveBytes = new Rfc2898DeriveBytes(keyBase64, salt, 10000, HashAlgorithmName.SHA256);
+            aes.Key = deriveBytes.GetBytes(32); // 32 bytes = 256 bits
+            
             string extension = Path.GetExtension(fileName).ToLower();
             if (extension == ".json" || extension == ".xml" || extension == ".config")
             {
@@ -433,7 +437,14 @@ namespace EncriptacionApi.Application.Services
         {
             var fullCipher = Convert.FromBase64String(cipherText);
             using var aes = Aes.Create();
-            aes.Key = Convert.FromBase64String(key);
+            
+            // Derivar una key de 256 bits(32 bytes) desde el password
+            byte[] salt = Encoding.UTF8.GetBytes("MiSaltUnico12345"); // Mejor usar un salt aleatorio y guardarlo
+            using var deriveBytes = new Rfc2898DeriveBytes(key, salt, 10000, HashAlgorithmName.SHA256);
+            aes.Key = deriveBytes.GetBytes(32); // 32 bytes = 256 bits
+
+            // aes.Key = Convert.FromBase64String(key);
+            // aes.Key = Convert.FromBase64String(key);
 
             var iv = new byte[aes.BlockSize / 8];
             var cipher = new byte[fullCipher.Length - iv.Length];

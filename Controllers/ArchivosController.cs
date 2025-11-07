@@ -5,6 +5,7 @@ using EncriptacionApi.Core.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using System.Text;
 
 namespace EncriptacionApi.Controllers
 {
@@ -145,11 +146,14 @@ namespace EncriptacionApi.Controllers
 
             try
             {
-                Convert.FromBase64String(encryptionKey ?? string.Empty);
+                encryptionKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(encryptionKey));
             }
-            catch (FormatException)
+            catch (InvalidOperationException)
             {
                 throw new InvalidOperationException("La clave de encriptación proporcionada no es una cadena Base64 válida.");
+            }
+            catch (ArgumentNullException)
+            {
             }
 
             try
