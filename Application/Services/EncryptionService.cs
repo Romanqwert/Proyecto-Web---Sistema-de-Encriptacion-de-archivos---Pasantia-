@@ -56,7 +56,7 @@ namespace EncriptacionApi.Application.Services
             return outputStream;
         }
 
-        public async Task<(byte[] Bytes, string Name)> ProcessFileAsync(IFormFile file, string? encriptionKey)
+        public async Task<(byte[] Bytes, string Name)> ProcessFileAsync(IFormFile file, string? encryptionKey)
         {
             using var memoryStream = new MemoryStream();
             await file.CopyToAsync(memoryStream);
@@ -64,7 +64,7 @@ namespace EncriptacionApi.Application.Services
 
             try
             {
-                encriptionKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(encriptionKey));
+                encryptionKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(encryptionKey));
             }
             catch (InvalidOperationException)
             {
@@ -74,7 +74,7 @@ namespace EncriptacionApi.Application.Services
             {
             }
 
-            var key = encriptionKey ?? Environment.GetEnvironmentVariable("ENCRYPTION_KEY");
+            var key = encryptionKey ?? Environment.GetEnvironmentVariable("ENCRYPTION_KEY");
             if (string.IsNullOrEmpty(key))
                 throw new InvalidOperationException("La clave de encriptación no está configurada.");
 
