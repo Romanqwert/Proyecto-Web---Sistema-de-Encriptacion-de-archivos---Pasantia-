@@ -124,7 +124,7 @@ namespace EncriptacionApi.Controllers
         [ProducesResponseType(typeof(FileContentResult), 200)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        public async Task<IActionResult> Download(int id)
+        public async Task<IActionResult> Download([FromBody] string? encryptionKey, int id)
         {
             var idUsuario = GetCurrentUserId();
             var ip = GetCurrentIpAddress();
@@ -145,6 +145,15 @@ namespace EncriptacionApi.Controllers
 
             try
             {
+                Convert.FromBase64String(encryptionKey ?? string.Empty);
+            }
+            catch (FormatException)
+            {
+                throw new InvalidOperationException("La clave de encriptación proporcionada no es una cadena Base64 válida.");
+            }
+
+            try
+            {
                 // Extraer publicId desde la URL guardada
                 var publicId = ExtraerPublicIdDesdeUrl(archivo.UrlArchivo);
 
@@ -156,7 +165,7 @@ namespace EncriptacionApi.Controllers
                 using var httpClient = new HttpClient();
                 var fileBytes = await httpClient.GetByteArrayAsync(fileUrl);
 
-                var keyBase64 = Environment.GetEnvironmentVariable("ENCRYPTION_KEY");
+                var keyBase64 = encryptionKey ?? Environment.GetEnvironmentVariable("ENCRYPTION_KEY");
                 if (string.IsNullOrEmpty(keyBase64))
                     throw new InvalidOperationException("La clave de encriptación no está configurada.");
 

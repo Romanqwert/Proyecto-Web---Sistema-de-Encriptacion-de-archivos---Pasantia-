@@ -1,7 +1,10 @@
-﻿using EncriptacionApi.Application.DTOs;
+﻿using CloudinaryDotNet.Actions;
+using EncriptacionApi.Application.DTOs;
 using EncriptacionApi.Application.Interfaces;
 using Microsoft.IdentityModel.Tokens;
+using Org.BouncyCastle.Utilities;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace EncriptacionApi.Application.Services
@@ -61,11 +64,14 @@ namespace EncriptacionApi.Application.Services
 
             try
             {
-                Convert.FromBase64String(encriptionKey ?? string.Empty);
+                encriptionKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(encriptionKey));
             }
-            catch (FormatException)
+            catch (InvalidOperationException)
             {
                 throw new InvalidOperationException("La clave de encriptación proporcionada no es una cadena Base64 válida.");
+            }
+            catch (ArgumentNullException)
+            {
             }
 
             var key = encriptionKey ?? Environment.GetEnvironmentVariable("ENCRYPTION_KEY");
@@ -245,7 +251,14 @@ namespace EncriptacionApi.Application.Services
         private string EncryptString(string plainText, string key)
         {
             using var aes = Aes.Create();
-            aes.Key = Convert.FromBase64String(key);
+
+            // Derivar una key de 256 bits(32 bytes) desde el password
+            byte[] salt = Encoding.UTF8.GetBytes("MiSaltUnico12345"); // Mejor usar un salt aleatorio y guardarlo
+            using var deriveBytes = new Rfc2898DeriveBytes(key, salt, 10000, HashAlgorithmName.SHA256);
+            aes.Key = deriveBytes.GetBytes(32); // 32 bytes = 256 bits
+            
+            // aes.Key = Convert.FromBase64String(key);
+            
             aes.GenerateIV();
             using var encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
             using var ms = new MemoryStream();
