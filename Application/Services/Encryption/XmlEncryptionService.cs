@@ -21,6 +21,39 @@
             return stringWriter.ToString();
         }
 
+        public string EncryptXmlWithTargets(string xml, string key, List<string> encryptTargets)
+        {
+            var doc = new System.Xml.XmlDocument();
+            doc.LoadXml(xml);
+
+            EncryptXmlNodesWithTargets(doc.DocumentElement!, key, encryptTargets);
+
+            using var stringWriter = new StringWriter();
+            using var xmlWriter = new System.Xml.XmlTextWriter(stringWriter)
+            {
+                Formatting = System.Xml.Formatting.Indented
+            };
+            doc.WriteTo(xmlWriter);
+            xmlWriter.Flush();
+            return stringWriter.ToString();
+        }
+        
+        public string DecryptXml(string xml, string key)
+        {
+            var doc = new System.Xml.XmlDocument();
+            doc.LoadXml(xml);
+            DecryptXmlNodes(doc.DocumentElement!, key);
+
+            using var stringWriter = new StringWriter();
+            using var xmlWriter = new System.Xml.XmlTextWriter(stringWriter)
+            {
+                Formatting = System.Xml.Formatting.Indented
+            };
+            doc.WriteTo(xmlWriter);
+            xmlWriter.Flush();
+            return stringWriter.ToString();
+        }
+        
         private void EncryptXmlNodes(System.Xml.XmlNode node, string key)
         {
             // Encripta el valor del nodo si es texto
@@ -48,23 +81,6 @@
             }
         }
 
-        #region XML / CONFIG Decryption
-        public string DecryptXml(string xml, string key)
-        {
-            var doc = new System.Xml.XmlDocument();
-            doc.LoadXml(xml);
-            DecryptXmlNodes(doc.DocumentElement!, key);
-
-            using var stringWriter = new StringWriter();
-            using var xmlWriter = new System.Xml.XmlTextWriter(stringWriter)
-            {
-                Formatting = System.Xml.Formatting.Indented
-            };
-            doc.WriteTo(xmlWriter);
-            xmlWriter.Flush();
-            return stringWriter.ToString();
-        }
-
         private void DecryptXmlNodes(System.Xml.XmlNode node, string key)
         {
             // Desencripta valor del nodo si es texto
@@ -90,26 +106,6 @@
             {
                 DecryptXmlNodes(child, key);
             }
-        }
-
-        #endregion
-
-        // Encriptar XML solo en las keys especificadas
-        public string EncryptXmlWithTargets(string xml, string key, List<string> encryptTargets)
-        {
-            var doc = new System.Xml.XmlDocument();
-            doc.LoadXml(xml);
-
-            EncryptXmlNodesWithTargets(doc.DocumentElement!, key, encryptTargets);
-
-            using var stringWriter = new StringWriter();
-            using var xmlWriter = new System.Xml.XmlTextWriter(stringWriter)
-            {
-                Formatting = System.Xml.Formatting.Indented
-            };
-            doc.WriteTo(xmlWriter);
-            xmlWriter.Flush();
-            return stringWriter.ToString();
         }
 
         private void EncryptXmlNodesWithTargets(System.Xml.XmlNode node, string key, List<string> encryptTargets, string currentPath = "")

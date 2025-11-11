@@ -1,18 +1,18 @@
-﻿using System.Security.Cryptography;
-using System.Text.Json;
-using System.Text;
+﻿using System.Text.Json;
 
 namespace EncriptacionApi.Application.Services.Encryption
 {
     public class JsonEncryptionService
     {
         private readonly EncryptHelper encryptHelper = new EncryptHelper();
+
         public string EncryptJson(string json, string key)
         {
             var data = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
             var encrypted = EncryptValuesRecursively(data, key);
             return JsonSerializer.Serialize(encrypted, new JsonSerializerOptions { WriteIndented = true });
         }
+
         public string DecryptJson(string json, string key)
         {
             var data = JsonSerializer.Deserialize<Dictionary<string, object>>(json);

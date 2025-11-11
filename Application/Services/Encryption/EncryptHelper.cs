@@ -54,8 +54,6 @@ namespace EncriptacionApi.Application.Services.Encryption
             }
             catch
             {
-                // Si no se puede desencriptar (no es Base64 válido o no fue encriptado),
-                // se devuelve el texto original
                 return cipherText;
             }
         }
