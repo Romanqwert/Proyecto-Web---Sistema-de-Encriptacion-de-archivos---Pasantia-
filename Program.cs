@@ -123,11 +123,9 @@ namespace EncriptacionApi
                 app.UseSwaggerUI();
             }
 
-            app.UseHttpsRedirection();
-
-            // app.UseRouting();
-
             app.UseCors(MyAllowSpecificOrigins);
+            
+            app.UseHttpsRedirection();
 
             // Habilitar Autenticación y Autorización
             app.UseAuthentication();
