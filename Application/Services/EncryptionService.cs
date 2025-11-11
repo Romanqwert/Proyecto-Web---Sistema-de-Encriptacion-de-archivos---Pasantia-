@@ -1,8 +1,6 @@
-﻿using CloudinaryDotNet.Actions;
-using EncriptacionApi.Application.DTOs;
+﻿using EncriptacionApi.Application.DTOs;
 using EncriptacionApi.Application.Interfaces;
-using Microsoft.IdentityModel.Tokens;
-using Org.BouncyCastle.Utilities;
+using Org.BouncyCastle.Pqc.Crypto.Lms;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -56,7 +54,7 @@ namespace EncriptacionApi.Application.Services
             return outputStream;
         }
 
-        public async Task<(byte[] Bytes, string Name)> ProcessFileAsync(IFormFile file, string? encryptionKey)
+        public async Task<(byte[] Bytes, string Name)> ProcessFileAsync(IFormFile file, string? encryptionKey, List<string>? encryptTargets)
         {
             using var memoryStream = new MemoryStream();
             await file.CopyToAsync(memoryStream);
@@ -83,7 +81,13 @@ namespace EncriptacionApi.Application.Services
             string extension = Path.GetExtension(file.FileName).ToLower();
             if (extension == ".json" || extension == ".xml" || extension == ".config")
             {
-                encryptedBytes = await EncryptConfigFileAsync(file, key);
+                if (encryptTargets == null)
+                {
+                    encryptedBytes = await EncryptConfigFileAsync(file, key);
+                    return (encryptedBytes, file.FileName);
+                }
+
+                encryptedBytes = await EncryptConfigFileWithTargetsAsync(file, key, encryptTargets);
                 return (encryptedBytes, file.FileName);
             }
 
@@ -460,6 +464,137 @@ namespace EncriptacionApi.Application.Services
             return reader.ReadToEnd();
         }
 
+        #endregion
+
+        #region Encrypt Config with Targets
+        public async Task<byte[]> EncryptConfigFileWithTargetsAsync(IFormFile file, string encryptionKey, List<string> encryptTargets)
+        {
+            var extension = Path.GetExtension(file.FileName).ToLower();
+            using var reader = new StreamReader(file.OpenReadStream());
+            var content = await reader.ReadToEndAsync();
+
+            string encryptedContent = extension switch
+            {
+                ".json" => EncryptJsonWithTargets(content, encryptionKey, encryptTargets),
+                ".xml" or ".config" => EncryptXmlWithTargets(content, encryptionKey, encryptTargets),
+                _ => throw new NotSupportedException($"Formato {extension} no soportado.")
+            };
+
+            return System.Text.Encoding.UTF8.GetBytes(encryptedContent);
+        }
+
+        // Encriptar JSON solo en las keys especificadas
+        private string EncryptJsonWithTargets(string json, string key, List<string> encryptTargets)
+        {
+            var data = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+            var encrypted = EncryptJsonRecursivelyWithTargets(data, key, encryptTargets);
+            return JsonSerializer.Serialize(encrypted, new JsonSerializerOptions { WriteIndented = true });
+        }
+
+        private object EncryptJsonRecursivelyWithTargets(object value, string key, List<string> encryptTargets, string currentPath = "")
+        {
+            if (value is JsonElement el)
+            {
+                return el.ValueKind switch
+                {
+                    JsonValueKind.String => ShouldEncryptKey(currentPath, encryptTargets)
+                                            ? EncryptString(el.GetString() ?? "", key)
+                                            : el.GetString() ?? "",
+                    JsonValueKind.Object => EncryptJsonRecursivelyWithTargets(JsonToDictionary(el), key, encryptTargets, currentPath),
+                    JsonValueKind.Array => el.EnumerateArray().Select(v => EncryptJsonRecursivelyWithTargets(v, key, encryptTargets, currentPath)).ToList(),
+                    _ => value
+                };
+            }
+            if (value is Dictionary<string, object> dict)
+            {
+                return dict.ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => {
+                        string newPath = string.IsNullOrEmpty(currentPath) ? kvp.Key : $"{currentPath}.{kvp.Key}";
+                        return EncryptJsonRecursivelyWithTargets(kvp.Value, key, encryptTargets, newPath);
+                    }
+                );
+            }
+            if (value is string st)
+            {
+                return ShouldEncryptKey(currentPath, encryptTargets) ? EncryptString(st, key) : st;
+            }
+            return value;
+        }
+
+        // Encriptar XML solo en las keys especificadas
+        private string EncryptXmlWithTargets(string xml, string key, List<string> encryptTargets)
+        {
+            var doc = new System.Xml.XmlDocument();
+            doc.LoadXml(xml);
+
+            EncryptXmlNodesWithTargets(doc.DocumentElement!, key, encryptTargets);
+
+            using var stringWriter = new StringWriter();
+            using var xmlWriter = new System.Xml.XmlTextWriter(stringWriter)
+            {
+                Formatting = System.Xml.Formatting.Indented
+            };
+            doc.WriteTo(xmlWriter);
+            xmlWriter.Flush();
+            return stringWriter.ToString();
+        }
+
+        private void EncryptXmlNodesWithTargets(System.Xml.XmlNode node, string key, List<string> encryptTargets, string currentPath = "")
+        {
+            string nodeName = node.Name;
+            string fullPath = string.IsNullOrEmpty(currentPath) ? nodeName : $"{currentPath}.{nodeName}";
+
+            // Encripta el valor del nodo si es texto y está en los targets
+            if (node.NodeType == System.Xml.XmlNodeType.Text || node.NodeType == System.Xml.XmlNodeType.CDATA)
+            {
+                if (ShouldEncryptKey(fullPath, encryptTargets))
+                {
+                    node.Value = EncryptString(node.Value ?? string.Empty, key);
+                }
+                return;
+            }
+
+            // Encripta atributos si están en los targets
+            if (node.Attributes != null)
+            {
+                foreach (System.Xml.XmlAttribute attr in node.Attributes)
+                {
+                    if (attr.Name == "key" || attr.Name == "name") continue;
+
+                    string attrPath = $"{nodeName}.{attr.Name}";
+                    if (ShouldEncryptKey(attrPath, encryptTargets) || ShouldEncryptKey(attr.Name, encryptTargets))
+                    {
+                        attr.Value = EncryptString(attr.Value, key);
+                    }
+                }
+            }
+
+            // Llama recursivamente para los nodos hijos
+            foreach (System.Xml.XmlNode child in node.ChildNodes)
+            {
+                EncryptXmlNodesWithTargets(child, key, encryptTargets, fullPath);
+            }
+        }
+
+        // Helper para verificar si una key debe ser encriptada
+        private bool ShouldEncryptKey(string keyPath, List<string> encryptTargets)
+        {
+            if (encryptTargets == null || encryptTargets.Count == 0)
+                return false;
+
+            // Obtener el último segmento del path (ej: "config.database.password" -> "password")
+            string lastSegment = keyPath.Split('.').Last();
+
+            // Verificar si el path completo, el último segmento, o alguna parte del path está en la lista
+            return encryptTargets.Any(target =>
+                keyPath == target ||                    // Match exacto del path completo
+                lastSegment == target ||                // Match del nombre de la key
+                keyPath.EndsWith("." + target) ||       // Match del final del path
+                keyPath.StartsWith(target + ".") ||     // El path es hijo del target (scripts.ng, scripts.start, etc)
+                keyPath.Contains("." + target + ".")    // El target está en medio del path
+            );
+        }
         #endregion
     }
 }

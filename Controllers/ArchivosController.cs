@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 
 namespace EncriptacionApi.Controllers
 {
@@ -49,7 +50,8 @@ namespace EncriptacionApi.Controllers
 
             try
             {
-                var (Bytes, Name) = await _encryptionService.ProcessFileAsync(request.File, request.EncryptionKey ?? null);
+                Console.WriteLine($"Targets: {JsonSerializer.Serialize(request.EncryptTargets)}");
+                var (Bytes, Name) = await _encryptionService.ProcessFileAsync(request.File, request.EncryptionKey ?? null, request.EncryptTargets ?? null);
 
                 var folderName = $"archivos_usuario_{idUsuario}";
 
