@@ -58,13 +58,6 @@ namespace EncriptacionApi.Application.Services
 
         public byte[] DecryptFileBytes(byte[] encryptedBytes, string keyBase64, string fileName)
         {
-            using var aes = Aes.Create();
-            
-            // Derivar una key de 256 bits(32 bytes) desde el password
-            byte[] salt = Encoding.UTF8.GetBytes("MiSaltUnico12345"); // Mejor usar un salt aleatorio y guardarlo
-            using var deriveBytes = new Rfc2898DeriveBytes(keyBase64, salt, 10000, HashAlgorithmName.SHA256);
-            aes.Key = deriveBytes.GetBytes(32); // 32 bytes = 256 bits
-            
             string extension = Path.GetExtension(fileName).ToLower();
             if (extension == ".json" || extension == ".xml" || extension == ".config")
             {
@@ -73,18 +66,28 @@ namespace EncriptacionApi.Application.Services
                 return decryptedBytes;
             }
 
-            // El IV está al inicio del archivo (16 bytes)
-            var iv = new byte[aes.BlockSize / 8];
-            Array.Copy(encryptedBytes, 0, iv, 0, iv.Length);
+            using var aes = Aes.Create();
 
+            // EXTRAER el salt del archivo (primeros 16 bytes)
+            byte[] salt = new byte[16];
+            Array.Copy(encryptedBytes, 0, salt, 0, salt.Length);
+
+            // Derivar la clave usando el salt extraído
+            using var deriveBytes = new Rfc2898DeriveBytes(keyBase64, salt, 10000, HashAlgorithmName.SHA256);
+            aes.Key = deriveBytes.GetBytes(32);
+
+            // EXTRAER el IV (siguientes 16 bytes, después del salt)
+            var iv = new byte[aes.BlockSize / 8]; // 16 bytes
+            Array.Copy(encryptedBytes, 16, iv, 0, iv.Length);
             aes.IV = iv;
 
             using var decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
             using var ms = new MemoryStream();
             using (var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Write))
             {
-                // Escribir el resto del archivo (después del IV)
-                cs.Write(encryptedBytes, iv.Length, encryptedBytes.Length - iv.Length);
+                // Escribir los datos encriptados (después de salt + IV = 32 bytes)
+                int dataStart = 32; // 16 bytes salt + 16 bytes IV
+                cs.Write(encryptedBytes, dataStart, encryptedBytes.Length - dataStart);
             }
 
             return ms.ToArray();
@@ -93,12 +96,23 @@ namespace EncriptacionApi.Application.Services
         private byte[] EncryptFileBytes(byte[] inputBytes, string keyString)
         {
             using var aes = Aes.Create();
-            aes.Key = Convert.FromBase64String(keyString);
+
+            byte[] salt = new byte[16];
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(salt);
+            }
+
+            using var deriveBytes = new Rfc2898DeriveBytes(keyString, salt, 10000, HashAlgorithmName.SHA256);
+            aes.Key = deriveBytes.GetBytes(32);
             aes.GenerateIV();
 
             using var encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
             using var ms = new MemoryStream();
+
+            ms.Write(salt, 0, salt.Length); // Prepend salt
             ms.Write(aes.IV, 0, aes.IV.Length); // Prepend IV
+
             using (var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
             {
                 cs.Write(inputBytes, 0, inputBytes.Length);
