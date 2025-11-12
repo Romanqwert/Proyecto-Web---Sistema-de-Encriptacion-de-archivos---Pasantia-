@@ -127,7 +127,7 @@ namespace EncriptacionApi.Controllers
         [ProducesResponseType(typeof(FileContentResult), 200)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        public async Task<IActionResult> Download([FromBody] string? encryptionKey, int id)
+        public async Task<IActionResult> Download([FromQuery] string? encryptionKey, int id)
         {
             var idUsuario = GetCurrentUserId();
             var ip = GetCurrentIpAddress();
