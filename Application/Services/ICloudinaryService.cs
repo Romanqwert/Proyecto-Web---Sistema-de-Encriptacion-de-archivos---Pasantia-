@@ -9,6 +9,8 @@ namespace EncriptacionApi.Application.Services
         Task<string> DownloadFileUrlAsync(string publicId);
 
         Task<GetResourceResult> GetResourceAsync(string publicId);
+
+        Task<bool> DeleteFileAsync(string publicId);
     }
     public class CloudinaryService : ICloudinaryService
     {
@@ -51,5 +53,22 @@ namespace EncriptacionApi.Application.Services
         {
             return await _cloudinary.GetResourceAsync(publicId);
         }
+
+        public async Task<bool> DeleteFileAsync(string publicId)
+        {
+            try
+            {
+                var deletionParams = new DeletionParams(publicId)
+                {
+                    ResourceType = ResourceType.Raw
+                };
+
+                var result = await _cloudinary.DestroyAsync(deletionParams);
+                return result.Result == "ok" || result.Result == "not found";
+            } catch (Exception ex)
+            {
+                throw new Exception($"Error al eliminar archivo de Cloudinary: {ex.Message}");
+            }
+        } 
     }
 }

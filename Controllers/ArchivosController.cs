@@ -254,6 +254,45 @@ namespace EncriptacionApi.Controllers
             }
         }
 
+        [HttpDelete("delete/{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteFile(int id)
+        {
+            var idUsuario = GetCurrentUserId();
+            var ip = GetCurrentIpAddress();
+            var archivo = await _archivoRepository.GetByIdAsync(id);
+            if (archivo == null)
+            {
+                await _historialService.RegistrarAccion(idUsuario, 3, "DELETE_FILE", "NOT_FOUND", ip);
+                return NotFound("El archivo no existe.");
+            }
+            if (archivo.IdUsuario != idUsuario)
+            {
+                await _historialService.RegistrarAccion(idUsuario, 3, "DELETE_FILE", "FORBIDDEN", ip);
+                return Forbid("No tiene permiso para eliminar este archivo.");
+            }
+
+            try
+            {
+                var publicId = ExtraerPublicIdDesdeUrl(archivo.UrlArchivo);
+                if (!string.IsNullOrEmpty(publicId))
+                {
+                    await _cloudinaryService.DeleteFileAsync(publicId);
+                }
+
+                // await _archivoRepository.DeleteAsync(archivo);
+
+                await _historialService.RegistrarAccion(idUsuario, 3, "DELETE_FILE", "SUCCESS", ip);
+                return Ok("Archivo eliminado correctamente.");
+            }
+            catch (Exception ex)
+            {
+                await _historialService.RegistrarAccion(idUsuario, 3, "DELETE_FILE", "FAILURE", ip);
+                return StatusCode(500, $"Error al eliminar el archivo: {ex.Message}");
+            }
+        }
+
         #region Helper functions
         private int GetCurrentUserId()
         {

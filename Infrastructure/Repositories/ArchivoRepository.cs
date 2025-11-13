@@ -35,5 +35,11 @@ namespace EncriptacionApi.Infrastructure.Repositories
         {
             return await _context.Archivo.FindAsync(id);
         }
+
+        public async Task DeleteAsync(Archivo archivo)
+        {
+            _context.Archivo.Remove(archivo);
+            await _context.SaveChangesAsync();
+        }
     }
 }
