@@ -163,19 +163,15 @@ namespace EncriptacionApi.Controllers
                 // Extraer publicId desde la URL guardada
                 var publicId = ExtraerPublicIdDesdeUrl(archivo.UrlArchivo);
 
-                // Obtener la URL segura del archivo
-                var fileUrl = archivo.UrlArchivo;
-                string fileName = archivo.NombreArchivo;
-
                 // Descargar bytes desde Cloudinary
                 using var httpClient = new HttpClient();
-                var fileBytes = await httpClient.GetByteArrayAsync(fileUrl);
+                var fileBytes = await httpClient.GetByteArrayAsync(archivo.UrlArchivo);
 
                 var keyBase64 = encryptionKey ?? Environment.GetEnvironmentVariable("ENCRYPTION_KEY");
                 if (string.IsNullOrEmpty(keyBase64))
                     throw new InvalidOperationException("La clave de encriptación no está configurada.");
 
-                var decryptedBytes = _encryptionService.DecryptFileBytes(fileBytes, keyBase64, fileName);
+                var decryptedBytes = _encryptionService.DecryptFileBytes(fileBytes, keyBase64, archivo.NombreArchivo);
 
                 await _historialService.RegistrarAccion(idUsuario, 2, "DOWNLOAD_FILE", "SUCCESS", ip);
 
@@ -217,24 +213,32 @@ namespace EncriptacionApi.Controllers
             var idUsuario = GetCurrentUserId();
             var archivos = await _archivoRepository.FindAsync(a => a.IdUsuario == idUsuario);
 
-            var archivosDisponibles = new List<ArchivoInfoDto>();
+            var archivosPorPublicId = archivos
+                .GroupBy(a => ExtraerPublicIdDesdeUrl(a.UrlArchivo))
+                .Select(g => g.First())
+                .ToList();
 
-            foreach (var archivo in archivos)
+            var verificaciones = archivosPorPublicId.Select(async archivo =>
             {
-                int index = archivosDisponibles.FindIndex(a => ExtraerPublicIdDesdeUrl(a.UrlArchivo) == ExtraerPublicIdDesdeUrl(archivo.UrlArchivo));
-                if (index == -1)
+                var publicId = ExtraerPublicIdDesdeUrl(archivo.UrlArchivo);
+                var existe = await _cloudinaryService.FileExistsAsync(publicId);
+                return new { Archivo = archivo, Existe = existe };
+            });
+
+            var resultados = await Task.WhenAll(verificaciones);
+
+            var archivosDisponibles = resultados
+                .Where(r => r.Existe)
+                .Select(r => new ArchivoInfoDto
                 {
-                    archivosDisponibles.Add(new ArchivoInfoDto
-                    {
-                        IdArchivo = archivo.IdArchivo,
-                        NombreArchivo = archivo.NombreArchivo,
-                        TipoMime = archivo.TipoMime,
-                        TamanoBytes = archivo.TamanoBytes,
-                        FechaSubida = archivo.FechaSubida,
-                        UrlArchivo = archivo.UrlArchivo
-                    });
-                }
-            }
+                    IdArchivo = r.Archivo.IdArchivo,
+                    NombreArchivo = r.Archivo.NombreArchivo,
+                    TipoMime = r.Archivo.TipoMime,
+                    TamanoBytes = r.Archivo.TamanoBytes,
+                    FechaSubida = r.Archivo.FechaSubida,
+                    UrlArchivo = r.Archivo.UrlArchivo
+                })
+                .OrderByDescending(a => a.FechaSubida);
 
             return Ok(archivosDisponibles);
         }
@@ -281,8 +285,6 @@ namespace EncriptacionApi.Controllers
                     await _cloudinaryService.DeleteFileAsync(publicId);
                 }
 
-                // await _archivoRepository.DeleteAsync(archivo);
-
                 await _historialService.RegistrarAccion(idUsuario, 3, "DELETE_FILE", "SUCCESS", ip);
                 return Ok("Archivo eliminado correctamente.");
             }
@@ -322,8 +324,8 @@ namespace EncriptacionApi.Controllers
 
                 var despuesDeUpload = partes[1];
                 var sinVersion = despuesDeUpload.Substring(despuesDeUpload.IndexOf('/') + 1);
-                var sinExtension = Path.Combine(Path.GetDirectoryName(sinVersion) ?? "", Path.GetFileNameWithoutExtension(sinVersion));
-                return sinExtension.Replace("\\", "/");
+                // var sinExtension = Path.Combine(Path.GetDirectoryName(sinVersion) ?? "", Path.GetFileNameWithoutExtension(sinVersion));
+                return sinVersion.Replace("\\", "/");
             }
             catch
             {

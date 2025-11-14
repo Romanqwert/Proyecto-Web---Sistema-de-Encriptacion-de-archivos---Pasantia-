@@ -11,6 +11,8 @@ namespace EncriptacionApi.Application.Services
         Task<GetResourceResult> GetResourceAsync(string publicId);
 
         Task<bool> DeleteFileAsync(string publicId);
+
+        Task<bool> FileExistsAsync(string publicId);
     }
     public class CloudinaryService : ICloudinaryService
     {
@@ -69,6 +71,40 @@ namespace EncriptacionApi.Application.Services
             {
                 throw new Exception($"Error al eliminar archivo de Cloudinary: {ex.Message}");
             }
-        } 
+        }
+
+        public async Task<bool> FileExistsAsync(string publicId)
+        {
+            if (string.IsNullOrEmpty(publicId))
+                return false;
+
+            try
+            {
+                // Método 1: Usar GetResource (más preciso pero puede ser más lento)
+                var getResourceParams = new GetResourceParams(publicId)
+                {
+                    ResourceType = ResourceType.Raw
+                };
+
+                var result = await _cloudinary.GetResourceAsync(getResourceParams);
+
+                // Si no lanza excepción y tiene información válida, el archivo existe
+                return result != null &&
+                       !string.IsNullOrEmpty(result.PublicId) &&
+                       result.Length > 0;
+            }
+            catch (Exception ex)
+            {
+                // Si el error es 404 (Not Found), el archivo no existe
+                if (ex.Message.Contains("404") || ex.Message.Contains("Not Found"))
+                {
+                    return false;
+                }
+
+                // Para otros errores, loggear y asumir que no existe por seguridad
+                Console.WriteLine($"Error al verificar existencia de archivo en Cloudinary: {ex.Message}");
+                return false;
+            }
+        }
     }
 }
