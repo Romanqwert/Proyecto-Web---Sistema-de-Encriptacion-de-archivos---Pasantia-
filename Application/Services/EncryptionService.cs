@@ -1,9 +1,7 @@
-﻿using EncriptacionApi.Application.DTOs;
-using EncriptacionApi.Application.Interfaces;
+﻿using EncriptacionApi.Application.Interfaces;
 using EncriptacionApi.Application.Services.Encryption;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 
 namespace EncriptacionApi.Application.Services
 {
